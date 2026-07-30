@@ -1,0 +1,141 @@
+{
+  "adzuna": {
+    "enabled": true,
+    "country": "sa",
+    "resultsPerPage": 50,
+    "maxPages": 3,
+    "searchQueries": [
+      "software engineer",
+      "AI engineer",
+      "machine learning engineer",
+      "backend engineer",
+      "python developer",
+      "LLM engineer"
+    ]
+  },
+  "greenhouse": {
+    "enabled": true,
+    "boards": [
+      "stripe",
+      "figma",
+      "notion",
+      "linear",
+      "vercel",
+      "neom",
+      "careem",
+      "hungerstation",
+      "tamara",
+      "stc",
+      "moyasar"
+    ]
+  },
+  "lever": {
+    "enabled": true,
+    "companies": [
+      "spotify",
+      "netflix",
+      "plaid",
+      "scale",
+      "checkout",
+      "noon"
+    ]
+  },
+  "ashby": {
+    "enabled": true,
+    "jobBoards": [
+      "anthropic",
+      "openai",
+      "ramp",
+      "retool",
+      "deel"
+    ]
+  },
+  "rss": {
+    "enabled": true,
+    "feeds": [
+      {
+        "name": "RemoteOK",
+        "url": "https://remoteok.com/remote-dev-jobs.rss",
+        "tags": ["remote", "global"]
+      },
+      {
+        "name": "We Work Remotely - Programming",
+        "url": "https://weworkremotely.com/categories/remote-programming-jobs.rss",
+        "tags": ["remote", "global"]
+      },
+      {
+        "name": "Saudi Jobs RSS (example)",
+        "url": "https://www.glassdoor.com/Job/saudi-arabia-software-engineer-jobs-SRCH_IL.0,12_IN207_KO13,30.htm",
+        "enabled": false,
+        "note": "Replace with a valid public RSS feed for Saudi listings"
+      }
+    ]
+  },
+  "saudiCareerPortals": {
+    "enabled": true,
+    "portals": [
+      {
+        "name": "NEOM Careers",
+        "type": "greenhouse",
+        "board": "neom"
+      },
+      {
+        "name": "SABIC Careers",
+        "type": "custom",
+        "url": "https://careers.sabic.com",
+        "parser": "html-table"
+      },
+      {
+        "name": "Aramco Careers",
+        "type": "custom",
+        "url": "https://careers.aramco.com",
+        "parser": "html-table"
+      },
+      {
+        "name": "Qiwa / HRSD (Government)",
+        "type": "custom",
+        "url": "https://qiwa.sa",
+        "parser": "government",
+        "enabled": false,
+        "note": "Enable after configuring official API or permitted feed"
+      },
+      {
+        "name": "Jadarat (HRSD)",
+        "type": "custom",
+        "url": "https://jadarat.sa",
+        "parser": "government",
+        "enabled": false
+      }
+    ]
+  },
+  "linkedin": {
+    "enabled": false,
+    "mode": "official_api_only",
+    "note": "Enable only with LinkedIn Talent Solutions or other officially permitted API access. Do not scrape.",
+    "searchKeywords": [
+      "Software Engineer Saudi Arabia",
+      "AI Engineer Riyadh",
+      "Machine Learning Engineer remote"
+    ]
+  },
+  "companyCareerPages": {
+    "enabled": true,
+    "pages": [
+      {
+        "company": "STC",
+        "url": "https://careers.stc.com.sa",
+        "ats": "custom"
+      },
+      {
+        "company": "Mobily",
+        "url": "https://www.mobily.com.sa/wps/portal/web/corporate/careers",
+        "ats": "custom"
+      },
+      {
+        "company": "Elm",
+        "url": "https://careers.elm.sa",
+        "ats": "custom"
+      }
+    ]
+  }
+}

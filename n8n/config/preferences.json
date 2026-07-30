@@ -1,0 +1,57 @@
+{
+  "region": {
+    "country": "Saudi Arabia",
+    "countryCode": "SA",
+    "timezone": "Asia/Riyadh",
+    "preferredCities": [
+      "Riyadh",
+      "Jeddah",
+      "Dammam",
+      "Khobar",
+      "Al Khobar",
+      "Dhahran",
+      "Makkah",
+      "Madinah",
+      "NEOM",
+      "Tabuk"
+    ],
+    "includeRemoteWorldwide": true,
+    "includeHybrid": true,
+    "includeOnSite": true
+  },
+  "jobTitles": [
+    "Software Engineer",
+    "AI Engineer",
+    "Machine Learning Engineer",
+    "Backend Engineer",
+    "Full Stack Engineer",
+    "Mobile Developer",
+    "iOS Developer",
+    "AI Automation Engineer",
+    "Python Developer",
+    "LLM Engineer",
+    "Prompt Engineer",
+    "Software Developer"
+  ],
+  "scoring": {
+    "minMatchScore": 70,
+    "generateResumeAbove": 70,
+    "autoApplyAbove": 70
+  },
+  "scheduling": {
+    "cron": "0 8 * * *",
+    "timezone": "Asia/Riyadh",
+    "maxJobAgeDays": 7
+  },
+  "notifications": {
+    "dailyEmail": true,
+    "sortBy": "matchScoreDesc",
+    "attachResumePdf": true,
+    "attachCoverLetterPdf": true
+  },
+  "autoApply": {
+    "enabled": false,
+    "requireManualReviewBelow": 70,
+    "supportedSources": ["greenhouse", "lever", "ashby"]
+  }
+}

@@ -1,0 +1,318 @@
+export const en = {
+  brand: "Almaram",
+  brandNative: "المرام",
+  tagline: "Your career destination",
+  nav: {
+    home: "Home",
+    jobs: "Recommended Jobs",
+    profile: "Profile",
+    pricing: "Plans",
+    language: "العربية",
+  },
+  welcome: {
+    headline: "Your next role, guided with clarity.",
+    subtitle:
+      "Upload your resume. We read your experience deeply and surface opportunities that fit where you're headed.",
+    upload: "Upload Resume",
+    uploadHint: "PDF only",
+    demo: "Explore a sample journey",
+    trust: "Built for professionals who know where they want to go",
+  },
+  upload: {
+    title: "Your resume",
+    subtitle: "Share your PDF — we'll understand your experience with care.",
+    drop: "Drop your PDF here",
+    or: "or choose a file",
+    pdfOnly: "PDF only · up to 10MB",
+    analyzing: "Reading your experience...",
+    analyzingHint: "Skills, projects, and the path you've built",
+  },
+  analysis: {
+    title: "Resume analysis",
+    subtitle: "We extracted what matters before searching for roles.",
+    careersTitle: "Roles that align with your experience",
+    careersHint: "Edit, add, remove, or reorder",
+    name: "Name",
+    experience: "Years of experience",
+    education: "Education",
+    skills: "Skills",
+    projects: "Projects",
+    certificates: "Certificates",
+    languages: "Programming languages",
+    frameworks: "Frameworks",
+    softSkills: "Soft skills",
+    addTitle: "Add a role",
+    continue: "Continue",
+  },
+  location: {
+    title: "Where do you want to work?",
+    subtitle: "Tell us the regions and cities that match your goals.",
+    countries: "Countries",
+    cities: "Cities",
+    employment: "Work arrangement",
+    remote: "Remote",
+    hybrid: "Hybrid",
+    onsite: "On-site",
+    searchGlobal: "Include global opportunities",
+    continue: "Find opportunities",
+  },
+  search: {
+    title: "Finding your best matches",
+    subtitle: "Searching trusted sources for roles that fit you.",
+    sources: "Company career pages · Adzuna · regional listings",
+  },
+  jobs: {
+    title: "Recommended jobs",
+    subtitle: "Sorted by compatibility — highest first",
+    matches: "opportunities",
+    matchScore: "Match score",
+    remote: "Remote",
+    hybrid: "Hybrid",
+    onsite: "On-site",
+    apply: "Apply",
+    details: "View details",
+    generateResume: "Create tailored resume",
+    generateCover: "Create cover letter",
+    salary: "Salary",
+    posted: "Posted",
+    empty: "No matches yet. Refine your preferences in Profile.",
+    refresh: "Refresh",
+  },
+  jobDetail: {
+    description: "About the role",
+    responsibilities: "What you'll do",
+    requirements: "What we're looking for",
+    requiredSkills: "Required skills",
+    matchedSkills: "Your matching skills",
+    missingSkills: "Skills to strengthen",
+    scoreReason: "Why this score",
+    recommendation: "Our recommendation",
+    generateResume: "Create tailored resume",
+    applyNow: "Apply on company site",
+    back: "Back to opportunities",
+  },
+  resume: {
+    title: "Resume optimization",
+    subtitle: "Tailored for this role — every fact comes from your resume.",
+    original: "Original resume",
+    optimized: "Optimized resume",
+    diff: "What changed",
+    coverLetter: "Cover letter",
+    downloadPdf: "Download PDF",
+    downloadDocx: "Download DOCX",
+    copy: "Copy",
+    approve: "Approve & save",
+    rules: "We never invent experience, skills, projects, or employment history.",
+    generating: "Preparing your tailored resume...",
+    threshold: "Match score must be at least",
+  },
+  apply: {
+    title: "Application ready",
+    applyLink: "Apply link",
+    companySite: "Company website",
+    source: "Source",
+    match: "Compatibility",
+    resumeVersion: "Resume version",
+    coverLetter: "Cover letter",
+    status: "Status",
+    ready: "Ready to apply",
+    autoApplySoon: "Guided apply — coming soon",
+  },
+  profile: {
+    title: "Your profile",
+    subtitle: "Everything we use to understand and guide your career.",
+    masterResume: "Master resume",
+    skills: "Skills",
+    experience: "Experience",
+    projects: "Projects",
+    certificates: "Certificates",
+    languages: "Languages",
+    preferences: "Career preferences",
+    jobTitles: "Preferred roles",
+    countries: "Preferred locations",
+    salary: "Salary expectations",
+    save: "Save changes",
+  },
+  pricing: {
+    title: "Choose your plan",
+    subtitle: "Start free. Upgrade when you're ready to go further.",
+    free: "Free",
+    pro: "Pro",
+    freeFeatures: [
+      "1 tailored resume",
+      "1 cover letter",
+      "Unlimited resume analysis",
+      "Unlimited job matching",
+    ],
+    proFeatures: [
+      "Unlimited tailored resumes",
+      "Unlimited cover letters",
+      "Daily job discovery",
+      "Daily email digest",
+      "Priority matching",
+      "Guided apply (soon)",
+    ],
+    current: "Current plan",
+    upgrade: "Upgrade to Pro",
+    limitTitle: "You've used your free generation",
+    limitBody: "Upgrade to Pro for unlimited resume and cover letter creation.",
+  },
+  common: {
+    continue: "Continue",
+    back: "Back",
+    skip: "Skip",
+    loading: "Loading...",
+    perMonth: "/month",
+  },
+} as const;
+
+export type TranslationKeys = {
+  brand: string;
+  brandNative: string;
+  tagline: string;
+  nav: {
+    home: string;
+    jobs: string;
+    profile: string;
+    pricing: string;
+    language: string;
+  };
+  welcome: {
+    headline: string;
+    subtitle: string;
+    upload: string;
+    uploadHint: string;
+    demo: string;
+    trust: string;
+  };
+  upload: {
+    title: string;
+    subtitle: string;
+    drop: string;
+    or: string;
+    pdfOnly: string;
+    analyzing: string;
+    analyzingHint: string;
+  };
+  analysis: {
+    title: string;
+    subtitle: string;
+    careersTitle: string;
+    careersHint: string;
+    name: string;
+    experience: string;
+    education: string;
+    skills: string;
+    projects: string;
+    certificates: string;
+    languages: string;
+    frameworks: string;
+    softSkills: string;
+    addTitle: string;
+    continue: string;
+  };
+  location: {
+    title: string;
+    subtitle: string;
+    countries: string;
+    cities: string;
+    employment: string;
+    remote: string;
+    hybrid: string;
+    onsite: string;
+    searchGlobal: string;
+    continue: string;
+  };
+  search: { title: string; subtitle: string; sources: string };
+  jobs: {
+    title: string;
+    subtitle: string;
+    matches: string;
+    matchScore: string;
+    remote: string;
+    hybrid: string;
+    onsite: string;
+    apply: string;
+    details: string;
+    generateResume: string;
+    generateCover: string;
+    salary: string;
+    posted: string;
+    empty: string;
+    refresh: string;
+  };
+  jobDetail: {
+    description: string;
+    responsibilities: string;
+    requirements: string;
+    requiredSkills: string;
+    matchedSkills: string;
+    missingSkills: string;
+    scoreReason: string;
+    recommendation: string;
+    generateResume: string;
+    applyNow: string;
+    back: string;
+  };
+  resume: {
+    title: string;
+    subtitle: string;
+    original: string;
+    optimized: string;
+    diff: string;
+    coverLetter: string;
+    downloadPdf: string;
+    downloadDocx: string;
+    copy: string;
+    approve: string;
+    rules: string;
+    generating: string;
+    threshold: string;
+  };
+  apply: {
+    title: string;
+    applyLink: string;
+    companySite: string;
+    source: string;
+    match: string;
+    resumeVersion: string;
+    coverLetter: string;
+    status: string;
+    ready: string;
+    autoApplySoon: string;
+  };
+  profile: {
+    title: string;
+    subtitle: string;
+    masterResume: string;
+    skills: string;
+    experience: string;
+    projects: string;
+    certificates: string;
+    languages: string;
+    preferences: string;
+    jobTitles: string;
+    countries: string;
+    salary: string;
+    save: string;
+  };
+  pricing: {
+    title: string;
+    subtitle: string;
+    free: string;
+    pro: string;
+    freeFeatures: readonly string[];
+    proFeatures: readonly string[];
+    current: string;
+    upgrade: string;
+    limitTitle: string;
+    limitBody: string;
+  };
+  common: {
+    continue: string;
+    back: string;
+    skip: string;
+    loading: string;
+    perMonth: string;
+  };
+};

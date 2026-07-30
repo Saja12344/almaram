@@ -1,0 +1,50 @@
+{
+  "name": "Your Full Name",
+  "email": "you@example.com",
+  "phone": "+966XXXXXXXXX",
+  "linkedin": "https://linkedin.com/in/yourprofile",
+  "github": "https://github.com/yourusername",
+  "portfolio": "https://yourportfolio.dev",
+  "location": "Riyadh, Saudi Arabia",
+  "workAuthorization": "Saudi citizen / Iqama holder / Remote eligible",
+  "masterResumeText": "Paste your full master resume here or load from Google Drive in n8n.",
+  "skills": [
+    "Python",
+    "TypeScript",
+    "React",
+    "Node.js",
+    "Machine Learning",
+    "LLMs",
+    "Docker",
+    "AWS",
+    "SQL",
+    "FastAPI"
+  ],
+  "experience": [
+    {
+      "company": "Company A",
+      "role": "Software Engineer",
+      "period": "2022 — Present",
+      "location": "Riyadh, Saudi Arabia",
+      "highlights": [
+        "Built backend services handling 1M+ requests/day",
+        "Led migration to microservices on AWS"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "Brief factual description",
+      "technologies": ["Python", "FastAPI", "PostgreSQL"],
+      "url": "https://github.com/you/project"
+    }
+  ],
+  "education": [
+    {
+      "school": "University Name",
+      "degree": "B.S. Computer Science",
+      "year": "2020"
+    }
+  ]
+}

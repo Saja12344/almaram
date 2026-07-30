@@ -1,0 +1,1343 @@
+{
+  "name": "Job Application Pipeline (apply-ready)",
+  "nodes": [
+    {
+      "parameters": {
+        "notice": "",
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "d675fe78-389f-45dc-837a-fe08ebf1e9c8",
+      "name": "Daily Job Search",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "sxjvFdyFe31mmlYG"
+        },
+        "matchType": "anyCondition",
+        "filters": {},
+        "returnAll": false,
+        "limit": 1,
+        "orderBy": false
+      },
+      "id": "2bf11446-ea5c-49e2-88d8-e3aa9ba340c4",
+      "name": "Get Profile",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "48TA6rnQ175ZqaIm"
+        },
+        "matchType": "anyCondition",
+        "filters": {},
+        "returnAll": true,
+        "orderBy": false
+      },
+      "id": "fce2fad3-d8ab-49e7-a7bb-9313f655c5f2",
+      "name": "Get Existing Applications",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        576
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Public ATS boards — Saudi Arabia + global remote-friendly companies\nconst greenhouse = [\"neom\", \"careem\", \"hungerstation\", \"tamara\", \"stripe\", \"gitlab\", \"cloudflare\", \"anthropic\", \"linear\", \"figma\", \"vercel\"];\nconst lever = [\"noon\", \"canva\"];\nconst ashby = [\"openai\", \"ramp\", \"deel\"];\nconst out = [];\nfor (const s of greenhouse) {\n  out.push({ json: { board: \"greenhouse\", company: s, url: \"https://boards-api.greenhouse.io/v1/boards/\" + s + \"/jobs?content=true\" } });\n}\nfor (const s of lever) {\n  out.push({ json: { board: \"lever\", company: s, url: \"https://api.lever.co/v0/postings/\" + s + \"?mode=json\" } });\n}\nfor (const s of ashby) {\n  out.push({ json: { board: \"ashby\", company: s, url: \"https://api.ashbyhq.com/posting-api/job-board/\" + s } });\n}\nreturn out;",
+        "notice": ""
+      },
+      "id": "35b2e0dc-aa22-4566-9119-2803c6598bf8",
+      "name": "Build Public Board Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        480
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": false,
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 3,
+              "batchInterval": 1000
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 20000
+        },
+        "infoMessage": ""
+      },
+      "id": "c3f69fba-c1cb-40de-9624-d5b48f2197a2",
+      "name": "Fetch Public Boards",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        896,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const sources = $(\"Build Public Board Sources\").all();\nconst responses = $input.all();\nconst out = [];\n\nfunction strip(html) {\n  if (!html) return \"\";\n  return String(html)\n    .replace(/<[^>]*>/g, \" \")\n    .replace(/&nbsp;/g, \" \")\n    .replace(/&amp;/g, \"&\")\n    .replace(/\\s+/g, \" \")\n    .trim();\n}\n\nfor (let i = 0; i < responses.length; i++) {\n  const src = (sources[i] && sources[i].json) || {};\n  const body = responses[i].json || {};\n  const board = src.board;\n  const company = src.company || \"\";\n  let list = [];\n\n  if (board === \"greenhouse\") list = Array.isArray(body.jobs) ? body.jobs : [];\n  else if (board === \"lever\") list = Array.isArray(body) ? body : [];\n  else if (board === \"ashby\") list = Array.isArray(body.jobs) ? body.jobs : [];\n\n  for (const j of list) {\n    let title = \"\", loc = \"\", url = \"\", desc = \"\", ext = \"\", datePosted = null;\n\n    if (board === \"greenhouse\") {\n      title = j.title || \"\";\n      loc = (j.location && j.location.name) || \"\";\n      url = j.absolute_url || \"\";\n      desc = strip(j.content);\n      ext = \"greenhouse-\" + company + \"-\" + j.id;\n      datePosted = j.updated_at || j.first_published || null;\n    } else if (board === \"lever\") {\n      title = j.text || \"\";\n      loc = (j.categories && j.categories.location) || \"\";\n      url = j.hostedUrl || \"\";\n      desc = strip(j.descriptionPlain || j.description);\n      ext = \"lever-\" + company + \"-\" + j.id;\n      datePosted = j.createdAt || null;\n    } else if (board === \"ashby\") {\n      title = j.title || \"\";\n      loc = j.location || \"\";\n      url = j.jobUrl || j.applyUrl || \"\";\n      desc = strip(j.descriptionPlain || j.description);\n      ext = \"ashby-\" + company + \"-\" + (j.id || j.jobId);\n      datePosted = j.publishedAt || null;\n    }\n\n    out.push({\n      json: {\n        external_id: ext,\n        company,\n        job_title: title,\n        job_location: loc,\n        job_url: url,\n        source: board,\n        description: (desc || \"\").slice(0, 6000),\n        date_posted: datePosted\n      }\n    });\n  }\n}\n\nreturn out;\n",
+        "notice": ""
+      },
+      "id": "96f2bf87-aaf3-446f-ae8a-f4b67203387e",
+      "name": "Normalize Public Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        480
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 2
+      },
+      "id": "76b771a2-462f-4281-99cf-b89a64f7620c",
+      "name": "Merge All Jobs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1344,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Adzuna Saudi Arabia (country code: sa) + multiple title searches\nconst queries = [\n  \"software engineer\",\n  \"AI engineer\",\n  \"machine learning engineer\",\n  \"backend engineer\",\n  \"full stack engineer\",\n  \"python developer\",\n  \"LLM engineer\",\n  \"prompt engineer\",\n  \"mobile developer\",\n  \"ios developer\"\n];\nconst out = [];\nfor (const what of queries) {\n  out.push({ json: {\n    board: \"adzuna\",\n    query: what,\n    url: \"https://api.adzuna.com/v1/api/jobs/sa/search/1?results_per_page=50&what=\" + encodeURIComponent(what) + \"&content-type=application/json\"\n  }});\n}\nreturn out;",
+        "notice": ""
+      },
+      "id": "a327e82c-4e45-4c6b-856e-643108a36432",
+      "name": "Build Adzuna Source",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        672
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": false,
+        "sendBody": false,
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 20000
+        },
+        "infoMessage": ""
+      },
+      "id": "48ee05a8-fec8-4ad2-b101-fb0c4b4754a3",
+      "name": "Fetch Adzuna",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        896,
+        672
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "kccUH4bVGQ3yKpVn",
+          "name": "Custom Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const out = [];\n\nfor (const item of $input.all()) {\n  const body = item.json || {};\n  const list = Array.isArray(body.results) ? body.results : [];\n\n  for (const j of list) {\n    out.push({\n      json: {\n        external_id: \"adzuna-\" + j.id,\n        company: (j.company && j.company.display_name) || \"\",\n        job_title: j.title || \"\",\n        job_location: (j.location && j.location.display_name) || \"\",\n        job_url: j.redirect_url || \"\",\n        source: \"adzuna\",\n        description: String(j.description || \"\").slice(0, 6000),\n        date_posted: j.created || null\n      }\n    });\n  }\n}\n\nreturn out;\n",
+        "notice": ""
+      },
+      "id": "3423f345-d8fe-4232-b43f-26c6aa661a6c",
+      "name": "Normalize Adzuna Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        672
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const profile = $(\"Get Profile\").first().json || {};\nconst existingRows = $(\"Get Existing Applications\").all();\nconst existingIds = new Set(existingRows.map(r => (r.json && r.json.external_id)).filter(Boolean));\n\nconst titleGroups = [\n  [\"software engineer\", \"software developer\"],\n  [\"ai engineer\", \"artificial intelligence engineer\", \"ai automation engineer\"],\n  [\"machine learning\", \"ml engineer\"],\n  [\"backend engineer\", \"back end engineer\", \"back-end engineer\"],\n  [\"full stack\", \"fullstack\"],\n  [\"mobile developer\", \"ios developer\", \"ios engineer\"],\n  [\"python developer\"],\n  [\"llm engineer\", \"prompt engineer\"]\n];\n\n// Block senior / management roles (IC only)\nconst seniorBlock = [\n  \"senior\", \"staff\", \"principal\", \"lead\", \"manager\", \"director\",\n  \"head of\", \"vp \", \"vice president\", \"chief\", \"distinguished\", \"architect\"\n];\n\nconst saudiCities = [\n  \"riyadh\", \"jeddah\", \"dammam\", \"khobar\", \"al khobar\", \"dhahran\",\n  \"makkah\", \"madinah\", \"neom\", \"tabuk\", \"saudi\", \"ksa\"\n];\nconst remoteTerms = [\"remote\", \"work from home\", \"wfh\", \"anywhere\", \"distributed\"];\nconst hybridTerms = [\"hybrid\"];\nconst onsiteTerms = [\"on-site\", \"onsite\", \"on site\", \"office-based\"];\n\nconst profileLocs = String(profile.target_locations || \"Remote,Riyadh,Jeddah,Dammam,Khobar\")\n  .toLowerCase()\n  .split(\",\")\n  .map(s => s.trim())\n  .filter(Boolean);\n\nconst includeRemote = profile.include_remote !== false;\nconst includeHybrid = profile.include_hybrid !== false;\nconst includeOnsite = profile.include_onsite !== false;\n\nconst maxAgeDays = Number(profile.max_job_age_days || 7);\nconst maxJobsPerRun = Number(profile.max_jobs_per_run || 30);\n\nconst cutoff = new Date();\ncutoff.setDate(cutoff.getDate() - maxAgeDays);\ncutoff.setHours(0, 0, 0, 0);\n\nfunction parseDate(value) {\n  if (!value) return null;\n  const d = new Date(value);\n  return Number.isNaN(d.getTime()) ? null : d;\n}\n\nfunction detectWorkType(locationText, descriptionText) {\n  const text = `${locationText} ${descriptionText}`.toLowerCase();\n  if (remoteTerms.some(k => text.includes(k))) return \"remote\";\n  if (hybridTerms.some(k => text.includes(k))) return \"hybrid\";\n  if (onsiteTerms.some(k => text.includes(k))) return \"onsite\";\n  return \"unknown\";\n}\n\nconst out = [];\n\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (!j.external_id || !j.job_title) continue;\n\n  const title = String(j.job_title).toLowerCase();\n  const loc = String(j.job_location || \"\").toLowerCase();\n  const desc = String(j.description || \"\").toLowerCase();\n  const fullBlob = `${title} ${loc} ${desc}`;\n\n  // IC titles only — drop Manager / Senior / Staff etc.\n  if (seniorBlock.some(k => title.includes(k))) continue;\n\n  const titleMatch = titleGroups.some(g => g.some(k => title.includes(k)));\n  if (!titleMatch) continue;\n\n  const posted = parseDate(j.date_posted || j.created_at || j.updated_at);\n  if (posted && posted < cutoff) continue;\n\n  const saudiMatch = saudiCities.some(c => fullBlob.includes(c));\n  const remoteMatch = includeRemote && remoteTerms.some(t => fullBlob.includes(t));\n  const profileLocMatch = profileLocs.some(t => fullBlob.includes(t));\n\n  // Block obvious onsite-only locations outside Saudi unless explicitly remote\n  const blockedOnsiteHints = [\n    \"israel\", \"tel aviv\", \"dublin\", \"berlin\", \"paris\", \"toronto\",\n    \"singapore\", \"sydney\", \"munich\", \"amsterdam\", \"london, uk\", \"new york\"\n  ];\n  const blockedOnsite = blockedOnsiteHints.some(h => fullBlob.includes(h));\n  if (blockedOnsite && !remoteMatch) continue;\n\n  if (!saudiMatch && !remoteMatch && !profileLocMatch) continue;\n\n  const workType = detectWorkType(loc, desc);\n  if (workType === \"remote\" && !includeRemote) continue;\n  if (workType === \"hybrid\" && !includeHybrid) continue;\n  if (workType === \"onsite\" && !includeOnsite) continue;\n\n  if (existingIds.has(j.external_id)) continue;\n\n  out.push({ json: { ...j, work_type: workType, date_posted: posted ? posted.toISOString() : null } });\n}\n\nreturn out.slice(0, maxJobsPerRun);\n",
+        "notice": ""
+      },
+      "id": "9fcddc24-2256-486c-8141-8b81df5249e5",
+      "name": "Filter & Dedupe Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        576
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "48TA6rnQ175ZqaIm"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "run_id",
+              "condition": "eq",
+              "keyValue": "={{ $execution.id }}"
+            }
+          ]
+        },
+        "returnAll": true,
+        "orderBy": false
+      },
+      "id": "c13a239e-6697-4532-ab92-6020658e89f9",
+      "name": "Get This Run Rows",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const LF = String.fromCharCode(10);\nconst rows = $input.all().map(i => i.json).filter(r => r && Object.keys(r).length > 0 && r.external_id);\nconst prepared = rows.filter(r => r.status === \"prepared\");\nconst lowScore = rows.filter(r => r.status === \"skipped_low_score\");\nconst errors = rows.filter(r => r.status === \"error\");\nconst profile = $(\"Get Profile\").first().json || {};\nconst appUrl = String(profile.site_url || \"http://localhost:3000\").replace(/\\/$/, \"\");\n\nconst esc = (s) => String(s == null ? \"\" : s).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\");\n\nconst html = [\n  \"<div style=\\\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:560px;margin:0 auto;padding:24px\\\">\",\n  \"<h2 style=\\\"margin:0 0 8px\\\">JobPilot — تحديث جديد على الموقع</h2>\",\n  \"<p style=\\\"color:#555;margin:0 0 16px\\\">Run: \" + esc($execution.id) + \"</p>\",\n  prepared.length\n    ? \"<p style=\\\"font-size:16px;line-height:1.6\\\">عندك <strong>\" + prepared.length + \"</strong> وظيفة جاهزة للمراجعة. السيرة والكفر لتر PDF موجودين في الموقع.</p>\"\n    : \"<p style=\\\"font-size:16px;line-height:1.6\\\">ما في وظائف جديدة جاهزة اليوم. راجع الموقع للتفاصيل.</p>\",\n  \"<p style=\\\"margin:20px 0\\\"><a href=\\\"\" + esc(appUrl + \"/applications\") + \"\\\" style=\\\"display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600\\\">افتح Applications في JobPilot</a></p>\",\n  \"<ul style=\\\"color:#444;line-height:1.8;padding-left:18px\\\">\",\n  \"<li>Matching new jobs processed: \" + rows.length + \"</li>\",\n  \"<li>Prepared (PDF ready on site): \" + prepared.length + \"</li>\",\n  \"<li>Skipped (below threshold): \" + lowScore.length + \"</li>\",\n  \"<li>Errors: \" + errors.length + \"</li>\",\n  \"</ul>\",\n  \"<p style=\\\"color:#888;font-size:12px;margin-top:20px\\\">التفاصيل الكاملة والملفات على الموقع — الإيميل للتنبيه فقط.</p>\",\n  \"</div>\"\n].join(LF);\n\nconst subject = prepared.length\n  ? \"JobPilot: \" + prepared.length + \" وظيفة جديدة جاهزة — شيك الموقع\"\n  : \"JobPilot: تحديث يومي — \" + rows.length + \" وظيفة تم فحصها\";\n\nreturn [{ json: { subject, html, prepared: prepared.length, processed: rows.length, appUrl } }];\n",
+        "notice": ""
+      },
+      "id": "2f9ad8be-ddd5-4a5f-9277-10190ba7b7a5",
+      "name": "Build Summary Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $(\"Get Profile\").first().json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "1d00cba8-e4cc-4c0b-8c1b-e8ffd13bd198",
+      "name": "Email Summary Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2656,
+        0
+      ],
+      "executeOnce": true,
+      "webhookId": "24b898be-f088-4ec1-a033-f05f4e8631f0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O2Z8gY2Q9OJLOwj8",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "// Deterministic match score — NO AI. Compares job vs resume_text only.\nconst profile = $(\"Get Profile\").first().json || {};\nconst job = $input.item.json || {};\n\nconst resumeText = String(profile.resume_text || \"\").toLowerCase();\nconst jobTitle = String(job.job_title || \"\").toLowerCase();\nconst jobDesc = String(job.description || \"\").toLowerCase();\nconst jobLoc = String(job.job_location || \"\").toLowerCase();\nconst blob = `${jobTitle} ${jobDesc} ${jobLoc}`;\n\nconst titleGroups = [\n  [\"software engineer\", \"software developer\"],\n  [\"ai engineer\", \"artificial intelligence engineer\", \"ai automation engineer\"],\n  [\"machine learning\", \"ml engineer\"],\n  [\"backend engineer\", \"back end engineer\", \"back-end engineer\"],\n  [\"full stack\", \"fullstack\"],\n  [\"mobile developer\", \"ios developer\", \"ios engineer\"],\n  [\"python developer\"],\n  [\"llm engineer\", \"prompt engineer\"]\n];\n\nconst saudiCities = [\n  \"riyadh\", \"jeddah\", \"dammam\", \"khobar\", \"al khobar\", \"dhahran\",\n  \"makkah\", \"madinah\", \"neom\", \"tabuk\", \"saudi\", \"ksa\"\n];\nconst remoteTerms = [\"remote\", \"work from home\", \"wfh\", \"anywhere\", \"distributed\"];\n\n// Skills explicitly listed in profile (comma string or array)\nlet profileSkills = [];\nif (Array.isArray(profile.skills)) {\n  profileSkills = profile.skills.map((s) => String(s).toLowerCase().trim()).filter(Boolean);\n} else if (typeof profile.skills === \"string\") {\n  profileSkills = profile.skills.split(\",\").map((s) => s.trim().toLowerCase()).filter(Boolean);\n}\n\n// Extra tokens only if they appear in resume_text (never invent)\nconst TECH_HINTS = [\n  \"python\", \"javascript\", \"typescript\", \"java\", \"react\", \"node.js\", \"node\",\n  \"aws\", \"docker\", \"kubernetes\", \"sql\", \"postgresql\", \"mongodb\", \"redis\",\n  \"fastapi\", \"django\", \"flask\", \"llm\", \"gpt\", \"openai\", \"machine learning\",\n  \"deep learning\", \"tensorflow\", \"pytorch\", \"swift\", \"kotlin\", \"go\", \"golang\",\n  \"rust\", \"api\", \"microservices\", \"git\", \"ci/cd\", \"azure\", \"gcp\", \"linux\",\n  \"next.js\", \"vue\", \"angular\", \"graphql\", \"kafka\", \"spark\", \"nlp\", \"rag\"\n];\n\nconst candidateTerms = new Set([...profileSkills]);\nfor (const hint of TECH_HINTS) {\n  if (resumeText.includes(hint)) candidateTerms.add(hint);\n}\n\nconst matched_skills = [];\nconst missing_skills = [];\n\nfor (const term of candidateTerms) {\n  if (term.length < 2) continue;\n  if (blob.includes(term)) matched_skills.push(term);\n}\n\nfor (const hint of TECH_HINTS) {\n  if (blob.includes(hint) && !resumeText.includes(hint) && !missing_skills.includes(hint)) {\n    missing_skills.push(hint);\n  }\n}\n\n// ── Title fit (0–25) ──\nlet titleScore = 0;\nif (titleGroups.some((g) => g.some((k) => jobTitle.includes(k)))) titleScore = 18;\n\nconst profileTitles = String(profile.target_titles || profile.job_titles || \"\")\n  .toLowerCase()\n  .split(\",\")\n  .map((s) => s.trim())\n  .filter(Boolean);\nif (profileTitles.some((t) => jobTitle.includes(t))) titleScore = 25;\n\n// ── Skills overlap (0–40) ──\nconst skillScore = Math.min(40, matched_skills.length * 6);\n\n// ── Experience / keyword density (0–20) ──\nconst expScore = Math.min(20, matched_skills.length * 2);\n\n// ── Location fit (0–15) ──\nlet locScore = 5;\nif (saudiCities.some((c) => blob.includes(c))) locScore = 15;\nelse if (remoteTerms.some((t) => blob.includes(t))) locScore = 12;\nelse if (!jobLoc.trim()) locScore = 8;\n\nlet match_score = Math.min(100, Math.round(titleScore + skillScore + expScore + locScore));\n\n// Penalty if job asks for many skills not in resume\nif (missing_skills.length >= 6) match_score = Math.max(0, match_score - 12);\nelse if (missing_skills.length >= 3) match_score = Math.max(0, match_score - 5);\n\nconst summary = [\n  `Code match ${match_score}/100.`,\n  `Title ${titleScore}/25, skills ${skillScore}/40, experience ${expScore}/20, location ${locScore}/15.`,\n  matched_skills.length\n    ? `Matched: ${matched_skills.slice(0, 10).join(\", \")}.`\n    : \"No strong skill overlap found.\",\n  missing_skills.length\n    ? `Missing from resume: ${missing_skills.slice(0, 6).join(\", \")}.`\n    : \"\"\n].filter(Boolean).join(\" \");\n\nreturn {\n  json: {\n    ...job,\n    output: {\n      match_score,\n      matched_skills,\n      missing_skills: missing_skills.slice(0, 15),\n      required_keywords: missing_skills.slice(0, 10),\n      summary,\n      scorer: \"code\"\n    }\n  }\n};\n",
+        "notice": ""
+      },
+      "id": "50c4a4d8-01b9-4fa4-8398-1f4bf4b6808e",
+      "name": "Code Match Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "notice": "",
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "responsesApiEnabled": true,
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "d617e3d9-c9b0-4ded-92f1-dfffd8316ee1",
+      "name": "Match Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2032,
+        672
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "p8owfDduk4tDYuFW",
+          "name": "OpenAI account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "notice": "",
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"match_score\":{\"type\":\"number\",\"description\":\"0-100 fit score\"},\"matched_skills\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"missing_skills\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"required_keywords\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"summary\":{\"type\":\"string\"}},\"required\":[\"match_score\",\"matched_skills\",\"missing_skills\",\"required_keywords\",\"summary\"],\"additionalProperties\":false}",
+        "autoFix": false
+      },
+      "id": "ae306de1-b925-4fe3-a3fd-41affd0190a0",
+      "name": "Match Score Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2160,
+        672
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "score",
+              "leftValue": "={{ $json.output.match_score }}",
+              "rightValue": "={{ $(\"Get Profile\").first().json.match_threshold }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": false,
+        "options": {}
+      },
+      "id": "c842924b-6e13-4fe0-9111-ab5252b2735a",
+      "name": "Above Threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2368,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "notice": "",
+        "promptType": "define",
+        "text": "=TARGET JOB: {{ $(\"Loop Over Jobs\").item.json.job_title }} at {{ $(\"Loop Over Jobs\").item.json.company }}\n\nJOB DESCRIPTION:\n{{ $(\"Loop Over Jobs\").item.json.description }}\n\nRELEVANT KEYWORDS THE CANDIDATE ALREADY HAS: {{ $json.output.matched_skills }}\n\nMASTER RESUME (the ONLY source of truth — do not add anything not present here):\n{{ $(\"Get Profile\").first().json.resume_text }}\n\nReturn the tailored, ATS-optimized resume using only existing content.",
+        "hasOutputParser": false,
+        "needsFallback": false,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are an ATS resume optimizer. STRICT RULES: Never invent, exaggerate, or add experience, skills, employers, dates, or metrics that are not already in the master resume. Only reorder, re-emphasize, and rephrase EXISTING content so the most relevant experience appears first and ATS keywords the candidate genuinely has are surfaced. Output a clean, plain-text resume."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "d4efa584-54eb-4e15-bce6-80195adf55a7",
+      "name": "Tailor Resume",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2592,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "notice": "",
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "responsesApiEnabled": true,
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "0db13126-a24a-4acf-a6d6-a8b5f3dafec1",
+      "name": "Resume Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2672,
+        416
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "p8owfDduk4tDYuFW",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "notice": "",
+        "promptType": "define",
+        "text": "=Write a cover letter for {{ $(\"Loop Over Jobs\").item.json.job_title }} at {{ $(\"Loop Over Jobs\").item.json.company }}.\n\nCandidate name: {{ $(\"Get Profile\").first().json.full_name }}\n\nJOB DESCRIPTION:\n{{ $(\"Loop Over Jobs\").item.json.description }}\n\nRESUME (only factual source):\n{{ $(\"Get Profile\").first().json.resume_text }}",
+        "hasOutputParser": false,
+        "needsFallback": false,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You write concise, professional cover letters using ONLY factual information found in the candidate resume. Never fabricate experience, skills, or achievements. Keep it under 300 words."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "4aef1581-5959-4e2c-8b27-bf96af6a9920",
+      "name": "Write Cover Letter",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2944,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "notice": "",
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "responsesApiEnabled": true,
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "17a87ea4-2c79-495f-a666-29e8edb8758a",
+      "name": "Cover Letter Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3024,
+        528
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "p8owfDduk4tDYuFW",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const p = $(\"Get Profile\").first().json || {};\nconst job = $(\"Loop Over Jobs\").item.json || {};\nconst ai = $(\"Code Match Score\").item.json.output || {};\nconst fields = {\n  name: p.full_name || \"\", email: p.email || \"\", phone: p.phone || \"\",\n  linkedin: p.linkedin || \"\", github: p.github || \"\", portfolio: p.portfolio || \"\"\n};\nconst notes = JSON.stringify({\n  application_fields: fields,\n  matched_skills: ai.matched_skills || [],\n  missing_skills: ai.missing_skills || [],\n  required_keywords: ai.required_keywords || [],\n  ai_summary: ai.summary || \"\"\n});\nreturn { json: { notes: notes } };",
+        "notice": ""
+      },
+      "id": "5a5a11c1-00fd-425a-9652-ff46a28b4051",
+      "name": "Build Application Kit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3296,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "48TA6rnQ175ZqaIm"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "job_location",
+              "displayName": "job_location",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "match_score",
+              "displayName": "match_score",
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "resume_version",
+              "displayName": "resume_version",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "tailored_resume",
+              "displayName": "tailored_resume",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "date_found",
+              "displayName": "date_found",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            }
+          ],
+          "value": {
+            "external_id": "={{ $(\"Loop Over Jobs\").item.json.external_id }}",
+            "company": "={{ $(\"Loop Over Jobs\").item.json.company }}",
+            "job_title": "={{ $(\"Loop Over Jobs\").item.json.job_title }}",
+            "job_location": "={{ $(\"Loop Over Jobs\").item.json.job_location }}",
+            "job_url": "={{ $(\"Loop Over Jobs\").item.json.job_url }}",
+            "source": "={{ $(\"Loop Over Jobs\").item.json.source }}",
+            "match_score": "={{ $(\"Code Match Score\").item.json.output.match_score }}",
+            "resume_version": "=tailored-{{ $now.toFormat(\"yyyyLLdd\") }}",
+            "cover_letter": "={{ $(\"Write Cover Letter\").item.json.text }}",
+            "tailored_resume": "={{ $(\"Tailor Resume\").item.json.text }}",
+            "status": "prepared",
+            "date_found": "={{ $now.toISO() }}",
+            "run_id": "={{ $execution.id }}",
+            "notes": "={{ $json.notes }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "e369cdea-2544-4995-b0b5-624e16baf1e2",
+      "name": "Log Prepared Application",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4128,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "splitInBatchesNotice": "",
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "7f3341dc-e361-4365-bd5d-4e3bc5c140f0",
+      "name": "Loop Over Jobs",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1792,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "48TA6rnQ175ZqaIm"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "job_location",
+              "displayName": "job_location",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "source",
+              "displayName": "source",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "match_score",
+              "displayName": "match_score",
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "resume_version",
+              "displayName": "resume_version",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "tailored_resume",
+              "displayName": "tailored_resume",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "date_found",
+              "displayName": "date_found",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "display": true,
+              "required": false,
+              "defaultMatch": false
+            }
+          ],
+          "value": {
+            "external_id": "={{ $(\"Loop Over Jobs\").item.json.external_id }}",
+            "company": "={{ $(\"Loop Over Jobs\").item.json.company }}",
+            "job_title": "={{ $(\"Loop Over Jobs\").item.json.job_title }}",
+            "job_location": "={{ $(\"Loop Over Jobs\").item.json.job_location }}",
+            "job_url": "={{ $(\"Loop Over Jobs\").item.json.job_url }}",
+            "source": "={{ $(\"Loop Over Jobs\").item.json.source }}",
+            "match_score": "={{ $json.output.match_score }}",
+            "resume_version": "",
+            "cover_letter": "",
+            "tailored_resume": "",
+            "status": "skipped_low_score",
+            "date_found": "={{ $now.toISO() }}",
+            "run_id": "={{ $execution.id }}",
+            "notes": "={{ $json.output.summary }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ea6f5e12-f868-45e3-8388-590cd745cd33",
+      "name": "Log Skipped (Low Score)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2656,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Job Application Pipeline (apply-ready)\n\n**Saudi + Remote · IC roles only · Site sync**\n\n1. Fetch → Filter → **Code Match Score**\n2. Score ≥ threshold → AI resume + cover letter\n3. **Push to JobPilot** → PDF on site `/applications`\n4. Email = site notification only\n\n**job_profile:** resume_text, skills, site_url, ingest_secret, match_threshold (70)",
+        "height": 320,
+        "width": 460,
+        "color": 4
+      },
+      "id": "fa3c81e6-f37e-41b1-a419-bfcbabd94cbe",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Saudi-focused boards: neom, careem, hungerstation, tamara, noon. Edit slugs to match your targets.",
+        "height": 160,
+        "width": 300,
+        "color": 6
+      },
+      "id": "ee1c06e5-f018-471d-be81-3e9b05796855",
+      "name": "Slugs",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        528,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Adzuna supports Saudi Arabia via country code `sa`. Requires httpCustomAuth credential with app_id + app_key as query params. Also catches remote/global roles.",
+        "height": 180,
+        "width": 320,
+        "color": 3
+      },
+      "id": "802feda1-e2bf-4f04-8a00-c44a44aa0a26",
+      "name": "Adzuna note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        528,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const profile = $(\"Get Profile\").first().json || {};\nconst job = $(\"Loop Over Jobs\").item.json || {};\nconst kit = $(\"Build Application Kit\").item.json || {};\n\nreturn {\n  json: {\n    siteUrl: String(profile.site_url || \"http://localhost:3000\").replace(/\\/$/, \"\"),\n    secret: profile.ingest_secret || \"\",\n    payload: {\n      external_id: job.external_id,\n      company: job.company,\n      job_title: job.job_title,\n      job_location: job.job_location || \"\",\n      job_url: job.job_url || \"\",\n      source: job.source || \"\",\n      match_score: $(\"Code Match Score\").item.json.output.match_score,\n      resume_version: `tailored-${$now.toFormat(\"yyyyLLdd\")}`,\n      tailored_resume: $(\"Tailor Resume\").item.json.text,\n      cover_letter: $(\"Write Cover Letter\").item.json.text,\n      date_found: $now.toISO(),\n      run_id: $execution.id,\n      notes: kit.notes || \"\"\n    }\n  }\n};\n",
+        "notice": ""
+      },
+      "id": "a1b2c3d4-site-4001-8000-prepare00001",
+      "name": "Prepare Site Push",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3456,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.siteUrl + '/api/applications/ingest' }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-JobPilot-Secret",
+              "value": "={{ $json.secret }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "a1b2c3d4-site-4002-8000-push00000001",
+      "name": "Push to JobPilot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3680,
+        304
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const push = $(\"Push to JobPilot\").item.json || {};\nconst kit = $(\"Build Application Kit\").item.json || {};\n\nlet notes = {};\ntry {\n  notes = JSON.parse(kit.notes || \"{}\");\n} catch {\n  notes = { raw: kit.notes || \"\" };\n}\n\nnotes.site = {\n  ok: push.ok === true,\n  viewUrl: push.viewUrl || \"\",\n  resumePdfUrl: push.resumePdfUrl || \"\",\n  coverLetterPdfUrl: push.coverLetterPdfUrl || \"\",\n  id: push.id || \"\"\n};\n\nif (push.error || push.message) {\n  notes.site.error = push.error || push.message;\n}\n\nreturn {\n  json: {\n    notes: JSON.stringify(notes)\n  }\n};\n",
+        "notice": ""
+      },
+      "id": "a1b2c3d4-site-4003-8000-final000001",
+      "name": "Finalize Prepared Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3904,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Job Search": {
+      "main": [
+        [
+          {
+            "node": "Get Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Applications": {
+      "main": [
+        [
+          {
+            "node": "Build Public Board Sources",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Adzuna Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Public Board Sources": {
+      "main": [
+        [
+          {
+            "node": "Fetch Public Boards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Public Boards": {
+      "main": [
+        [
+          {
+            "node": "Normalize Public Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Public Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge All Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Jobs": {
+      "main": [
+        [
+          {
+            "node": "Filter & Dedupe Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Adzuna Source": {
+      "main": [
+        [
+          {
+            "node": "Fetch Adzuna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Adzuna": {
+      "main": [
+        [
+          {
+            "node": "Normalize Adzuna Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Adzuna Jobs": {
+      "main": [
+        [
+          {
+            "node": "Merge All Jobs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Filter & Dedupe Jobs": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get This Run Rows": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary Report": {
+      "main": [
+        [
+          {
+            "node": "Email Summary Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Above Threshold?": {
+      "main": [
+        [
+          {
+            "node": "Tailor Resume",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Skipped (Low Score)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tailor Resume": {
+      "main": [
+        [
+          {
+            "node": "Write Cover Letter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Tailor Resume",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Cover Letter": {
+      "main": [
+        [
+          {
+            "node": "Build Application Kit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cover Letter Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write Cover Letter",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Application Kit": {
+      "main": [
+        [
+          {
+            "node": "Prepare Site Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Prepared Application": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Jobs": {
+      "main": [
+        [
+          {
+            "node": "Get This Run Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code Match Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Skipped (Low Score)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Match Score": {
+      "main": [
+        [
+          {
+            "node": "Above Threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Site Push": {
+      "main": [
+        [
+          {
+            "node": "Push to JobPilot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Push to JobPilot": {
+      "main": [
+        [
+          {
+            "node": "Finalize Prepared Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Prepared Row": {
+      "main": [
+        [
+          {
+            "node": "Log Prepared Application",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timezone": "Asia/Riyadh"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "name": "JobPilot — List Applications (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "jobpilot/applications",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f1a2b3c4-0001-4000-8000-000000000001",
+      "name": "Webhook List Applications",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "jobpilot-list-applications"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const headers = $input.first().json.headers || {};\nconst secret = headers['x-jobpilot-secret'] || headers['X-JobPilot-Secret'] || '';\nconst expected = $env.JOBPILOT_INGEST_SECRET || '';\n\nif (!expected || secret !== expected) {\n  throw new Error('Unauthorized');\n}\n\nreturn $input.all();"
+      },
+      "id": "f1a2b3c4-0002-4000-8000-000000000002",
+      "name": "Verify Secret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "48TA6rnQ175ZqaIm"
+        },
+        "matchType": "anyCondition",
+        "filters": {},
+        "returnAll": true,
+        "orderBy": false
+      },
+      "id": "f1a2b3c4-0003-4000-8000-000000000003",
+      "name": "Get job_applications",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [680, 300],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const rows = $input.all()\n  .map(i => i.json)\n  .filter(r => r && r.external_id)\n  .sort((a, b) => new Date(b.date_found || 0) - new Date(a.date_found || 0));\n\nreturn [{ json: { applications: rows, count: rows.length } }];"
+      },
+      "id": "f1a2b3c4-0004-4000-8000-000000000004",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "f1a2b3c4-0005-4000-8000-000000000005",
+      "name": "Respond JSON",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "content": "## JobPilot Site API\n\n**GET** `/webhook/jobpilot/applications`\n\nHeader: `X-JobPilot-Secret` = same as `JOBPILOT_INGEST_SECRET` in n8n Variables + site `.env.local`\n\nReturns all rows from **job_applications** data table.\n\n1. Set n8n Variable: `JOBPILOT_INGEST_SECRET`\n2. **Activate** this workflow\n3. Add Production URL to site `.env.local` as `N8N_APPLICATIONS_WEBHOOK_URL`",
+        "height": 260,
+        "width": 420
+      },
+      "id": "f1a2b3c4-0006-4000-8000-000000000006",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [220, 40]
+    }
+  ],
+  "connections": {
+    "Webhook List Applications": {
+      "main": [[{ "node": "Verify Secret", "type": "main", "index": 0 }]]
+    },
+    "Verify Secret": {
+      "main": [[{ "node": "Get job_applications", "type": "main", "index": 0 }]]
+    },
+    "Get job_applications": {
+      "main": [[{ "node": "Format Response", "type": "main", "index": 0 }]]
+    },
+    "Format Response": {
+      "main": [[{ "node": "Respond JSON", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Riyadh"
+  },
+  "active": false,
+  "tags": [{ "name": "jobpilot" }, { "name": "webhook" }]
+}

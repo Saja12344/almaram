@@ -1,0 +1,13 @@
+# n8n API → Site (no Desktop files needed)
+
+1. n8n Cloud → Settings → API → Create key (scope: dataTableRow:read)
+2. Add to .env.local:
+
+N8N_API_URL=https://sga37.app.n8n.cloud
+N8N_API_KEY=<paste your key here>
+N8N_APPLICATIONS_TABLE_ID=48TA6rnQ175ZqaIm
+
+3. npm run site
+4. Open http://localhost:3000/applications
+
+Full guide: n8n/API-SETUP.md

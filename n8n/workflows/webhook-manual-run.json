@@ -1,0 +1,72 @@
+{
+  "name": "JobPilot — Manual Run (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "automation/start",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "e1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Webhook Start Automation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "jobpilot-automation-start"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "JobPilot — Daily Job Agent (Saudi + Remote)"
+        },
+        "options": {}
+      },
+      "id": "e1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Run Daily Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, status: 'completed', message: 'Daily job agent finished' } }}",
+        "options": {}
+      },
+      "id": "e1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "content": "Connect JobPilot frontend:\n\n`POST /webhook/automation/start`\n\nBody (optional overrides):\n```json\n{\n  \"minMatchScore\": 70,\n  \"autoApply\": false\n}\n```",
+        "height": 180,
+        "width": 340
+      },
+      "id": "e1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [220, 80]
+    }
+  ],
+  "connections": {
+    "Webhook Start Automation": {
+      "main": [[{ "node": "Run Daily Agent", "type": "main", "index": 0 }]]
+    },
+    "Run Daily Agent": {
+      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Riyadh"
+  },
+  "active": false,
+  "tags": [{ "name": "jobpilot" }, { "name": "webhook" }]
+}

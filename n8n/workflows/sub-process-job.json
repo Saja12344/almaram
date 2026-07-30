@@ -1,0 +1,299 @@
+{
+  "name": "JobPilot — Process Job (Sub-workflow)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "model": "={{ $env.AI_MODEL || 'gpt-4o-mini' }}",
+        "options": {
+          "temperature": 0.1
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.scorePrompt }}"
+            }
+          ]
+        },
+        "jsonOutput": true
+      },
+      "id": "b1b2c3d4-0002-4000-8000-000000000002",
+      "name": "AI Match Score",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [680, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Execute Workflow Trigger').first().json;\nconst job = input.job;\nconst masterResume = input.masterResume;\nconst minScore = input.minMatchScore ?? 70;\n\nconst scorePrompt = `You are an expert technical recruiter. Score job fit using ONLY facts in the resume. Never invent skills. Return JSON only.\n\nMASTER RESUME:\\n\"\"\"\\n${masterResume}\\n\"\"\"\\n\\nJOB:\\nTitle: ${job.title}\\nCompany: ${job.company}\\nLocation: ${job.location}\\nDescription:\\n\"\"\"\\n${(job.description||'').slice(0,8000)}\\n\"\"\"\\n\\nReturn JSON: {\"matchScore\":0-100,\"matchedSkills\":[],\"missingSkills\":[],\"matchedExperience\":[],\"locationFit\":\"saudi|remote|both|weak\",\"summary\":\"\",\"recommendation\":\"apply|review|skip\"}`;\n\nreturn [{ json: { ...input, scorePrompt, minScore } }];"
+      },
+      "id": "b1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Build Score Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('Execute Workflow Trigger').first().json;\nconst job = input.job;\nconst masterResume = input.masterResume;\nconst minScore = input.minMatchScore ?? 70;\n\nlet matchResult;\ntry {\n  const ai = $('AI Match Score').first().json;\n  matchResult = typeof ai.message?.content === 'string' ? JSON.parse(ai.message.content) : (ai.output || ai);\n} catch (e) {\n  matchResult = { matchScore: 0, summary: 'Scoring failed', recommendation: 'skip' };\n}\n\nconst matchScore = Math.min(100, Math.max(0, Number(matchResult.matchScore) || 0));\nconst qualified = matchScore >= minScore;\n\nreturn [{ json: { job, masterResume, matchResult: { ...matchResult, matchScore }, matchScore, qualified, minScore, autoApplyEnabled: input.autoApplyEnabled === true } }];"
+      },
+      "id": "b1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Parse Match Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "qualified-check",
+              "leftValue": "={{ $json.qualified }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Score >= 70?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "model": "={{ $env.AI_MODEL || 'gpt-4o-mini' }}",
+        "options": {
+          "temperature": 0.2
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.resumePrompt }}"
+            }
+          ]
+        }
+      },
+      "id": "b1b2c3d4-0006-4000-8000-000000000006",
+      "name": "AI Generate Resume",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [1340, 280],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "={{ $env.AI_MODEL || 'gpt-4o-mini' }}",
+        "options": {
+          "temperature": 0.3
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.coverPrompt }}"
+            }
+          ]
+        }
+      },
+      "id": "b1b2c3d4-0007-4000-8000-000000000007",
+      "name": "AI Generate Cover Letter",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [1560, 280],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Parse Match Score').first().json;\nconst resumeMd = $('AI Generate Resume').first().json.message?.content || '';\nconst coverText = $('AI Generate Cover Letter').first().json.message?.content || '';\nconst job = ctx.job;\nconst version = `v-${job.id.slice(0,8)}-${new Date().toISOString().slice(0,10)}`;\n\nfunction mdToHtml(md) {\n  return String(md).replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\\*\\*(.+?)\\*\\*/g,'<strong>$1</strong>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>[\\s\\S]*?<\\/li>)/g,'<ul>$1</ul>').replace(/\\n\\n/g,'</p><p>');\n}\n\nconst resumeHtml = `<!DOCTYPE html><html><head><meta charset=\\\"UTF-8\\\"><style>body{font-family:Arial;margin:40px;font-size:11pt;line-height:1.45}h1{font-size:22pt}h2{font-size:12pt;border-bottom:1px solid #333;margin-top:18px}</style></head><body>${mdToHtml(resumeMd)}</body></html>`;\nconst coverHtml = `<!DOCTYPE html><html><head><meta charset=\\\"UTF-8\\\"><style>body{font-family:Arial;margin:40px;font-size:11pt;line-height:1.6}</style></head><body><p>${coverText.replace(/\\n\\n/g,'</p><p>')}</p></body></html>`;\n\nreturn [{ json: {\n  ...ctx,\n  resumeMarkdown: resumeMd,\n  coverLetterText: coverText,\n  resumeHtml,\n  coverHtml,\n  resumeVersion: version,\n  applicationStatus: ctx.autoApplyEnabled ? 'auto_apply_pending' : 'ready_for_review',\n  processedAt: new Date().toISOString()\n}}];"
+      },
+      "id": "b1b2c3d4-0008-4000-8000-000000000008",
+      "name": "Prepare PDF Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 280]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.GOTENBERG_URL || 'http://localhost:3000') + '/forms/chromium/convert/html' }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "files",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "resumeHtmlFile"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "b1b2c3d4-0009-4000-8000-000000000009",
+      "name": "Resume to PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.GOTENBERG_URL || 'http://localhost:3000') + '/forms/chromium/convert/html' }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "files",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "coverHtmlFile"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "b1b2c3d4-0010-4000-8000-000000000010",
+      "name": "Cover Letter to PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Prepare PDF Payload').first().json;\nreturn [{ json: {\n  job: ctx.job,\n  matchScore: ctx.matchScore,\n  matchResult: ctx.matchResult,\n  matchSummary: ctx.matchResult.summary,\n  resumeVersion: ctx.resumeVersion,\n  coverLetterText: ctx.coverLetterText,\n  applicationStatus: ctx.applicationStatus,\n  processedAt: ctx.processedAt,\n  tier: 'qualified',\n  hasPdf: true\n}}];"
+      },
+      "id": "b1b2c3d4-0011-4000-8000-000000000011",
+      "name": "Qualified Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\nreturn [{ json: {\n  job: ctx.job,\n  matchScore: ctx.matchScore,\n  matchResult: ctx.matchResult,\n  matchSummary: ctx.matchResult.summary,\n  applicationStatus: 'low_match',\n  processedAt: new Date().toISOString(),\n  tier: 'low_match',\n  hasPdf: false\n}}];"
+      },
+      "id": "b1b2c3d4-0012-4000-8000-000000000012",
+      "name": "Low Match Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Parse Match Score').first().json;\nconst job = ctx.job;\nconst masterResume = ctx.masterResume;\nconst mr = ctx.matchResult;\n\nconst resumePrompt = `Create an ATS resume in Markdown using ONLY facts from the master resume. Never invent skills or experience. Reorder for relevance to ${job.title} at ${job.company}. Mirror these matched keywords when truthful: ${(mr.matchedSkills||[]).join(', ')}.\\n\\nMASTER RESUME:\\n${masterResume}\\n\\nReturn ONLY Markdown.`;\n\nconst coverPrompt = `Write a factual cover letter for ${job.title} at ${job.company}. Use ONLY resume facts. Never invent experience.\\n\\nMASTER RESUME:\\n${masterResume}\\n\\nMATCH: ${mr.summary}`;\n\nreturn [{ json: { ...ctx, resumePrompt, coverPrompt } }];"
+      },
+      "id": "b1b2c3d4-0013-4000-8000-000000000013",
+      "name": "Build Generation Prompts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Prepare PDF Payload').first().json;\nconst resumeBuffer = Buffer.from(payload.resumeHtml, 'utf-8');\nconst coverBuffer = Buffer.from(payload.coverHtml, 'utf-8');\n\nreturn [\n  {\n    json: payload,\n    binary: {\n      resumeHtmlFile: {\n        data: resumeBuffer.toString('base64'),\n        mimeType: 'text/html',\n        fileName: 'index.html'\n      }\n    }\n  },\n  {\n    json: payload,\n    binary: {\n      coverHtmlFile: {\n        data: coverBuffer.toString('base64'),\n        mimeType: 'text/html',\n        fileName: 'index.html'\n      }\n    }\n  }\n];"
+      },
+      "id": "b1b2c3d4-0014-4000-8000-000000000014",
+      "name": "Split HTML Binaries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 160]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [[{ "node": "Build Score Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build Score Prompt": {
+      "main": [[{ "node": "AI Match Score", "type": "main", "index": 0 }]]
+    },
+    "AI Match Score": {
+      "main": [[{ "node": "Parse Match Score", "type": "main", "index": 0 }]]
+    },
+    "Parse Match Score": {
+      "main": [[{ "node": "Score >= 70?", "type": "main", "index": 0 }]]
+    },
+    "Score >= 70?": {
+      "main": [
+        [{ "node": "Build Generation Prompts", "type": "main", "index": 0 }],
+        [{ "node": "Low Match Output", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Generation Prompts": {
+      "main": [[{ "node": "AI Generate Resume", "type": "main", "index": 0 }]]
+    },
+    "AI Generate Resume": {
+      "main": [[{ "node": "AI Generate Cover Letter", "type": "main", "index": 0 }]]
+    },
+    "AI Generate Cover Letter": {
+      "main": [[{ "node": "Prepare PDF Payload", "type": "main", "index": 0 }]]
+    },
+    "Prepare PDF Payload": {
+      "main": [[{ "node": "Split HTML Binaries", "type": "main", "index": 0 }]]
+    },
+    "Split HTML Binaries": {
+      "main": [
+        [{ "node": "Resume to PDF", "type": "main", "index": 0 }],
+        [{ "node": "Cover Letter to PDF", "type": "main", "index": 0 }]
+      ]
+    },
+    "Resume to PDF": {
+      "main": [[{ "node": "Qualified Output", "type": "main", "index": 0 }]]
+    },
+    "Cover Letter to PDF": {
+      "main": [[{ "node": "Qualified Output", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Riyadh"
+  },
+  "active": false,
+  "tags": [{ "name": "jobpilot" }]
+}

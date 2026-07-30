@@ -1,0 +1,46 @@
+{
+  "name": "JobPilot — Auto Apply (Stub)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst qualified = (input.qualified || []).filter(j => (j.matchScore || 0) >= 70);\n\n// Future: route by ATS source (greenhouse, lever, ashby)\n// Each source will need its own apply adapter with user consent + CAPTCHA handling\n\nconst plan = qualified.map(j => ({\n  jobId: j.job.id,\n  company: j.job.company,\n  title: j.job.title,\n  source: j.job.source,\n  applyUrl: j.job.applyUrl,\n  matchScore: j.matchScore,\n  autoApplyStatus: 'pending_implementation',\n  note: 'Connect ATS-specific apply nodes here when AUTO_APPLY_ENABLED=true'\n}));\n\nreturn [{ json: { autoApplyPlan: plan, count: plan.length, enabled: true } }];"
+      },
+      "id": "d1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Build Auto Apply Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "content": "## Auto Apply Stub\n\nThis sub-workflow is intentionally a placeholder.\n\nWhen you enable `AUTO_APPLY_ENABLED=true`, qualified jobs (score ≥ 70) are routed here.\n\n**Next steps to implement:**\n1. Add Switch node on `job.source`\n2. Greenhouse → HTTP form submit or browser automation\n3. Lever → Lever apply API / form POST\n4. Ashby → Ashby application endpoint\n5. Log results back to Google Sheets `ApplicationStatus` column\n6. Never auto-apply to sources without explicit user authorization",
+        "height": 280,
+        "width": 400
+      },
+      "id": "d1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [220, 80]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [[{ "node": "Build Auto Apply Plan", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Riyadh"
+  },
+  "active": false,
+  "tags": [{ "name": "jobpilot" }, { "name": "auto-apply" }]
+}
