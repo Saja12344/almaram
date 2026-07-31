@@ -11,7 +11,6 @@ import {
 import { MatchBadge } from "@/components/career/job-card";
 import { FadeIn } from "@/components/career/motion";
 import { useCareer } from "@/contexts/career-context";
-import { getJobById } from "@/lib/mock/career-data";
 import {
   getJobOriginalTitle,
   getJobTitle,
@@ -21,7 +20,7 @@ import {
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, locale } = useCareer();
+  const { t, locale, getJobById } = useCareer();
   const job = getJobById(params.id);
 
   if (!job) {

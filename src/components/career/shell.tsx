@@ -17,41 +17,43 @@ export function CareerShell({
   minimal?: boolean;
 }) {
   const { t, locale, setLocale, profile } = useCareer();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
-  const showNav = profile.onboardingComplete && !minimal;
+
+  const navItems = [
+    { href: "/", label: t.nav.home },
+    ...(profile.onboardingComplete ? [{ href: "/jobs", label: t.nav.jobs }] : []),
+    ...(user ? [{ href: "/profile", label: t.nav.profile }] : []),
+    { href: "/pricing", label: t.nav.pricing },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link href="/">
             <AlmaramLogo />
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <ThemeToggle />
             <button
               type="button"
               onClick={() => setLocale(locale === "en" ? "ar" : "en")}
-              className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              className="rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
             >
               {t.nav.language}
             </button>
 
-            {showNav ? (
-              <nav className="hidden items-center gap-1 rounded-full border border-border bg-card p-1 sm:flex">
-                {[
-                  { href: "/jobs", label: t.nav.jobs },
-                  { href: "/profile", label: t.nav.profile },
-                  { href: "/pricing", label: t.nav.pricing },
-                ].map((item) => (
+            {!minimal ? (
+              <nav className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1">
+                {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "rounded-full px-4 py-2 text-sm font-medium transition",
-                      pathname.startsWith(item.href)
+                      "whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition sm:px-4",
+                      pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     )}
@@ -62,14 +64,22 @@ export function CareerShell({
               </nav>
             ) : null}
 
-            {!user ? (
+            {user ? (
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                {t.auth.signOut}
+              </button>
+            ) : (
               <Link
                 href="/login"
-                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                className="rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
               >
                 {t.auth.signIn}
               </Link>
-            ) : null}
+            )}
           </div>
         </div>
       </header>

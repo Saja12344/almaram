@@ -60,11 +60,14 @@ export const en = {
     title: "Finding your best matches",
     subtitle: "Searching trusted sources for roles that fit you.",
     sources: "Company career pages · Adzuna · regional listings",
+    noResults: "No matching jobs found right now — try broadening your locations.",
+    guestHint: "Sign in to save jobs and get daily email digests with Pro.",
   },
   jobs: {
     title: "Recommended jobs",
     subtitle: "Sorted by compatibility — highest first",
     matches: "opportunities",
+    liveData: "Live listings",
     matchScore: "Match score",
     asPosted: "As posted",
     remote: "Remote",
@@ -78,6 +81,8 @@ export const en = {
     posted: "Posted",
     empty: "No matches yet. Refine your preferences in Profile.",
     refresh: "Refresh",
+    refreshedLive: "Updated with live job listings.",
+    refreshFailed: "Could not fetch live jobs. Try again from Profile.",
   },
   jobDetail: {
     description: "About the role",
@@ -148,6 +153,11 @@ export const en = {
     replaceResumeHint: "Replace your resume anytime — we'll re-analyze your experience.",
     addRole: "Add role",
     searchGlobal: "Include global opportunities",
+    digest: "Daily job email",
+    digestHint: "Pro only — get the latest matching jobs at your chosen time.",
+    digestTime: "Send at",
+    digestEnabled: "Enable daily digest",
+    refreshJobs: "Refresh jobs",
   },
   auth: {
     title: "Sign in to Almaram",
@@ -168,18 +178,17 @@ export const en = {
     free: "Free",
     pro: "Pro",
     freeFeatures: [
-      "1 tailored resume",
-      "1 cover letter",
-      "Unlimited resume analysis",
-      "Unlimited job matching",
+      "5 live job matches from your resume",
+      "1 tailored resume (OpenAI)",
+      "1 cover letter (OpenAI)",
+      "Resume analysis from PDF",
     ],
     proFeatures: [
-      "Unlimited tailored resumes",
-      "Unlimited cover letters",
-      "Daily job discovery",
-      "Daily email digest",
+      "Up to 40 live job matches",
+      "Daily email digest at your chosen time",
+      "Unlimited tailored resumes (OpenAI)",
+      "Unlimited cover letters (OpenAI)",
       "Priority matching",
-      "Guided apply (soon)",
     ],
     current: "Current plan",
     upgrade: "Upgrade to Pro",
@@ -263,11 +272,18 @@ export type TranslationKeys = {
     searchGlobal: string;
     continue: string;
   };
-  search: { title: string; subtitle: string; sources: string };
+  search: {
+    title: string;
+    subtitle: string;
+    sources: string;
+    noResults: string;
+    guestHint: string;
+  };
   jobs: {
     title: string;
     subtitle: string;
     matches: string;
+    liveData: string;
     matchScore: string;
     asPosted: string;
     remote: string;
@@ -281,6 +297,8 @@ export type TranslationKeys = {
     posted: string;
     empty: string;
     refresh: string;
+    refreshedLive: string;
+    refreshFailed: string;
   };
   jobDetail: {
     description: string;
@@ -351,6 +369,11 @@ export type TranslationKeys = {
     replaceResumeHint: string;
     addRole: string;
     searchGlobal: string;
+    digest: string;
+    digestHint: string;
+    digestTime: string;
+    digestEnabled: string;
+    refreshJobs: string;
   };
   auth: {
     title: string;

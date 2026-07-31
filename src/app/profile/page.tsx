@@ -50,8 +50,10 @@ export default function ProfilePage() {
     setJobTitles,
     setLocation,
     setSalaryExpectation,
+    setDigest,
     saveProfile,
     saving,
+    searchJobs,
   } = useCareer();
 
   const analysis = profile.analysis;
@@ -63,6 +65,9 @@ export default function ProfilePage() {
     profile.location.employmentTypes
   );
   const [searchGlobal, setSearchGlobal] = useState(profile.location.searchGlobal);
+  const [digestEnabled, setDigestEnabled] = useState(profile.digest?.enabled ?? false);
+  const [digestTime, setDigestTime] = useState(profile.digest?.time ?? "08:00");
+  const [refreshing, setRefreshing] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
 
@@ -72,10 +77,28 @@ export default function ProfilePage() {
 
   async function handleSave() {
     const location = { countries, cities, employmentTypes, searchGlobal };
+    const digest = {
+      enabled: digestEnabled,
+      time: digestTime,
+      timezone: profile.digest?.timezone || "Asia/Riyadh",
+    };
     setJobTitles(titles);
     setLocation(location);
-    await saveProfile({ jobTitles: titles, location });
+    setDigest(digest);
+    await saveProfile({ jobTitles: titles, location, digest });
     toast.success(t.profile.saved);
+  }
+
+  async function handleRefreshJobs() {
+    setRefreshing(true);
+    try {
+      const count = await searchJobs();
+      toast.success(`${count} ${t.jobs.matches}`);
+    } catch {
+      toast.error(t.auth.errorGeneric);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   async function handlePasswordChange() {
@@ -295,7 +318,39 @@ export default function ProfilePage() {
           <PrimaryButton onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
             {saving ? t.common.loading : t.profile.save}
           </PrimaryButton>
+          <SecondaryButton
+            onClick={handleRefreshJobs}
+            disabled={refreshing || !analysis}
+            className="w-full sm:w-auto"
+          >
+            {refreshing ? t.common.loading : t.profile.refreshJobs}
+          </SecondaryButton>
         </PremiumCard>
+
+        {profile.plan === "pro" && user ? (
+          <PremiumCard className="space-y-4">
+            <h3 className="text-lg font-semibold">{t.profile.digest}</h3>
+            <p className="text-sm text-muted-foreground">{t.profile.digestHint}</p>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={digestEnabled}
+                onChange={(e) => setDigestEnabled(e.target.checked)}
+                className="size-4 rounded border-border accent-primary"
+              />
+              {t.profile.digestEnabled}
+            </label>
+            <div>
+              <label className="text-sm font-medium">{t.profile.digestTime}</label>
+              <input
+                type="time"
+                value={digestTime}
+                onChange={(e) => setDigestTime(e.target.value)}
+                className="mt-2 h-11 rounded-2xl border border-border bg-card px-4 text-sm outline-none focus:border-primary/40"
+              />
+            </div>
+          </PremiumCard>
+        ) : null}
       </div>
     </CareerShell>
   );

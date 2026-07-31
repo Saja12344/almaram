@@ -41,7 +41,7 @@ function ToggleChip({
 
 export default function LocationPage() {
   const router = useRouter();
-  const { t, profile, setLocation } = useCareer();
+  const { t, profile, setLocation, saveProfile } = useCareer();
   const [countries, setCountries] = useState(profile.location.countries);
   const [cities, setCities] = useState(profile.location.cities);
   const [employmentTypes, setEmploymentTypes] = useState<EmploymentType[]>(
@@ -121,8 +121,10 @@ export default function LocationPage() {
         </PremiumCard>
 
         <PrimaryButton
-          onClick={() => {
-            setLocation({ countries, cities, employmentTypes, searchGlobal });
+          onClick={async () => {
+            const location = { countries, cities, employmentTypes, searchGlobal };
+            setLocation(location);
+            await saveProfile({ location });
             router.push("/onboarding/search");
           }}
         >

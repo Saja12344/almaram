@@ -11,11 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { doc, setDoc } from "firebase/firestore";
-import {
-  DEFAULT_JOB_TITLES,
-  DEMO_ANALYSIS,
-  getSortedJobs,
-} from "@/lib/mock/career-data";
+import { DEFAULT_JOB_TITLES, DEMO_ANALYSIS } from "@/lib/mock/career-data";
 import { getDir, translations, type Locale, type TranslationKeys } from "@/lib/i18n";
 import { getFirebaseDb, isFirebaseConfigured } from "@/lib/firebase/client";
 import { USERS_COLLECTION } from "@/lib/firebase/user-doc";
@@ -24,7 +20,6 @@ import type {
   ApplicationRecord,
   JobListing,
   LocationPreferences,
-  OptimizedDocuments,
   Plan,
   ResumeAnalysis,
   UserCareerProfile,
@@ -43,6 +38,11 @@ const defaultProfile: UserCareerProfile = {
   freeCoverUsed: false,
   onboardingComplete: false,
   applications: {},
+  digest: {
+    enabled: false,
+    time: "08:00",
+    timezone: "Asia/Riyadh",
+  },
 };
 
 interface CareerContextValue {
@@ -56,6 +56,7 @@ interface CareerContextValue {
   setJobTitles: (titles: string[]) => void;
   setLocation: (location: LocationPreferences) => void;
   setSalaryExpectation: (value: string) => void;
+  setDigest: (digest: UserCareerProfile["digest"]) => void;
   completeOnboarding: () => void;
   loadDemo: () => void;
   markResumeUsed: () => void;
@@ -64,7 +65,8 @@ interface CareerContextValue {
   canGenerateCover: () => boolean;
   saveApplication: (jobId: string, record: ApplicationRecord) => void;
   getApplication: (jobId: string) => ApplicationRecord | undefined;
-  generateDocuments: (job: JobListing) => OptimizedDocuments;
+  getJobById: (id: string) => JobListing | undefined;
+  searchJobs: () => Promise<number>;
   resetOnboarding: () => void;
   saveProfile: (override?: Partial<UserCareerProfile>) => Promise<void>;
   saving: boolean;
@@ -115,14 +117,12 @@ export function CareerProvider({ children }: { children: ReactNode }) {
     document.documentElement.dir = getDir(locale);
   }, [locale]);
 
-  // Sync plan from Firebase subscription
   useEffect(() => {
     if (userDoc?.plan && userDoc.plan !== profile.plan) {
       setProfile((prev) => ({ ...prev, plan: userDoc.plan }));
     }
   }, [userDoc?.plan, profile.plan]);
 
-  // Load cloud profile once after sign-in
   useEffect(() => {
     if (!user || !userDoc?.careerProfile) return;
     if (cloudSynced.current) return;
@@ -163,7 +163,11 @@ export function CareerProvider({ children }: { children: ReactNode }) {
 
   const t = translations[locale];
   const dir = getDir(locale);
-  const jobs = useMemo(() => getSortedJobs(), []);
+
+  const jobs = useMemo(
+    () => [...(profile.cachedJobs || [])].sort((a, b) => b.matchScore - a.matchScore),
+    [profile.cachedJobs]
+  );
 
   const updateProfile = useCallback((patch: Partial<UserCareerProfile>) => {
     setProfile((prev) => ({ ...prev, ...patch }));
@@ -185,6 +189,35 @@ export function CareerProvider({ children }: { children: ReactNode }) {
     updateProfile({ onboardingComplete: true });
   }, [updateProfile]);
 
+  const searchJobs = useCallback(async (): Promise<number> => {
+    const plan: Plan = userDoc?.plan || profile.plan;
+    const res = await fetch("/api/jobs/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        uid: user?.uid,
+        email: user?.email,
+        profile,
+        plan,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Search failed");
+
+    const patch = {
+      cachedJobs: data.jobs as JobListing[],
+      lastJobFetchAt: data.fetchedAt as string,
+    };
+    updateProfile(patch);
+    await saveProfile(patch);
+    return (data.jobs as JobListing[]).length;
+  }, [user, userDoc?.plan, profile, updateProfile, saveProfile]);
+
+  const getJobById = useCallback(
+    (id: string) => jobs.find((j) => j.id === id),
+    [jobs]
+  );
+
   const canGenerateResume = useCallback(
     (matchScore: number, threshold = 70) => {
       if (matchScore < threshold) return false;
@@ -199,26 +232,6 @@ export function CareerProvider({ children }: { children: ReactNode }) {
     return !profile.freeCoverUsed;
   }, [profile.plan, profile.freeCoverUsed]);
 
-  const generateDocuments = useCallback(
-    (job: JobListing): OptimizedDocuments => {
-      const base = profile.analysis?.rawText || DEMO_ANALYSIS.rawText;
-      const optimized = `${profile.analysis?.name || "Candidate"}\n\nPROFESSIONAL SUMMARY\nSoftware engineer with experience in ${job.matchedSkills.slice(0, 4).join(", ")}.\n\nRELEVANT EXPERIENCE\n• Highlighted projects aligned with ${job.title} at ${job.company}\n• Emphasized ${job.matchedSkills[0] || "mobile"} and API integration work\n\nSKILLS\n${job.matchedSkills.join(" · ")}`;
-      const cover = `Dear ${job.company} Hiring Team,\n\nI am excited to apply for the ${job.title} role. My background in ${profile.analysis?.programmingLanguages.slice(0, 3).join(", ") || "software development"} aligns with your requirements.\n\nI have shipped production applications including ${profile.analysis?.projects[0] || "published mobile apps"}, with hands-on experience in ${job.matchedSkills.slice(0, 3).join(", ")}.\n\nThank you for your consideration.\n\n${profile.analysis?.name || ""}`;
-      return {
-        originalResume: base,
-        optimizedResume: optimized,
-        diffHighlights: [
-          "Reordered experience to lead with mobile projects",
-          "Added ATS keywords from job description",
-          "Highlighted matched skills: " + job.matchedSkills.slice(0, 3).join(", "),
-        ],
-        coverLetter: cover,
-        approved: false,
-      };
-    },
-    [profile.analysis]
-  );
-
   const value: CareerContextValue = {
     locale,
     t,
@@ -230,6 +243,7 @@ export function CareerProvider({ children }: { children: ReactNode }) {
     setJobTitles: (jobTitles) => updateProfile({ jobTitles }),
     setLocation: (location) => updateProfile({ location }),
     setSalaryExpectation: (salaryExpectation) => updateProfile({ salaryExpectation }),
+    setDigest: (digest) => updateProfile({ digest }),
     completeOnboarding,
     loadDemo,
     markResumeUsed: () => updateProfile({ freeResumeUsed: true }),
@@ -242,7 +256,8 @@ export function CareerProvider({ children }: { children: ReactNode }) {
         applications: { ...prev.applications, [jobId]: record },
       })),
     getApplication: (jobId) => profile.applications[jobId],
-    generateDocuments,
+    getJobById,
+    searchJobs,
     resetOnboarding: () => {
       localStorage.removeItem(STORAGE_KEY);
       setProfile(defaultProfile);

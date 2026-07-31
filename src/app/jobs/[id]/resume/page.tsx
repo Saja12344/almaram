@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -12,22 +11,23 @@ import {
   SecondaryButton,
 } from "@/components/career/shell";
 import { PulseLoader } from "@/components/career/motion";
+import { useAuth } from "@/contexts/auth-context";
 import { useCareer } from "@/contexts/career-context";
-import { getJobById } from "@/lib/mock/career-data";
 import type { OptimizedDocuments } from "@/types/career";
 
 export default function ResumePreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const {
     t,
     canGenerateResume,
     canGenerateCover,
-    generateDocuments,
     markResumeUsed,
     markCoverUsed,
     saveApplication,
     profile,
+    getJobById,
   } = useCareer();
   const job = getJobById(params.id);
   const [loading, setLoading] = useState(true);
@@ -40,12 +40,39 @@ export default function ResumePreviewPage() {
       router.push("/pricing");
       return;
     }
-    const timer = setTimeout(() => {
-      setDocs(generateDocuments(job));
-      setLoading(false);
-    }, 1800);
-    return () => clearTimeout(timer);
-  }, [job, canGenerateResume, generateDocuments, router]);
+
+    async function generate() {
+      try {
+        const res = await fetch("/api/jobs/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job,
+            profile,
+            email: user?.email,
+            type: "both",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Generation failed");
+
+        setDocs({
+          originalResume: data.originalResume,
+          optimizedResume: data.optimizedResume,
+          diffHighlights: data.diffHighlights,
+          coverLetter: data.coverLetter,
+          approved: false,
+        });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t.auth.errorGeneric);
+        router.push(`/jobs/${job!.id}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void generate();
+  }, [job, canGenerateResume, profile, user?.email, router, t]);
 
   if (!job) {
     router.replace("/jobs");
@@ -90,7 +117,7 @@ export default function ResumePreviewPage() {
             className={`rounded-full px-4 py-2 text-sm font-medium ${
               tab === key
                 ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground border border-border"
+                : "border border-border bg-card text-muted-foreground"
             }`}
           >
             {label}
@@ -113,22 +140,16 @@ export default function ResumePreviewPage() {
         >
           {t.resume.copy}
         </SecondaryButton>
-        <SecondaryButton onClick={() => toast.success("PDF download — connect n8n")}>
-          {t.resume.downloadPdf}
-        </SecondaryButton>
-        <SecondaryButton onClick={() => toast.success("DOCX download — connect n8n")}>
-          {t.resume.downloadDocx}
-        </SecondaryButton>
         <PrimaryButton
           onClick={() => {
             if (profile.plan === "free") {
               markResumeUsed();
-              if (tab === "cover" || canGenerateCover()) markCoverUsed();
+              if (canGenerateCover()) markCoverUsed();
             }
             saveApplication(job.id, {
               jobId: job.id,
               status: "ready",
-              resumeVersion: "optimized-v1",
+              resumeVersion: "openai-v1",
               coverLetterUsed: true,
               documents: { ...docs, approved: true },
             });

@@ -13,6 +13,14 @@ export interface ResumeAnalysis {
   frameworks: string[];
   softSkills: string[];
   rawText: string;
+  suggestedJobTitles?: string[];
+}
+
+export interface DigestPreferences {
+  enabled: boolean;
+  /** HH:mm in 24h format, e.g. "08:00" */
+  time: string;
+  timezone: string;
 }
 
 export interface LocationPreferences {
@@ -24,6 +32,7 @@ export interface LocationPreferences {
 
 export interface JobListing {
   id: string;
+  externalId?: string;
   company: string;
   companyLogo: string;
   title: string;
@@ -73,6 +82,9 @@ export interface UserCareerProfile {
   freeCoverUsed: boolean;
   onboardingComplete: boolean;
   applications: Record<string, ApplicationRecord>;
+  cachedJobs?: JobListing[];
+  lastJobFetchAt?: string;
+  digest?: DigestPreferences;
 }
 
 export const DEFAULT_LOCATION: LocationPreferences = {

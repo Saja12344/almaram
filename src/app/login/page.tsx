@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { CareerShell, PremiumCard, PrimaryButton } from "@/components/career/shell";
 import { useAuth } from "@/contexts/auth-context";
@@ -22,13 +22,34 @@ function firebaseErrorMessage(code: string, fallback: string): string {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <CareerShell minimal>
+          <PremiumCard className="py-16 text-center text-muted-foreground">…</PremiumCard>
+        </CareerShell>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
-  const { t } = useCareer();
-  const { configured, signIn, signUp, loading } = useAuth();
+  const searchParams = useSearchParams();
+  const { t, profile } = useCareer();
+  const { configured, signIn, signUp, loading, user } = useAuth();
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace(profile.onboardingComplete ? "/jobs" : "/");
+    }
+  }, [loading, user, profile.onboardingComplete, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +59,8 @@ export default function LoginPage() {
       if (mode === "signIn") await signIn(email, password);
       else await signUp(email, password);
       toast.success(mode === "signIn" ? t.auth.signIn : t.auth.signUp);
-      router.push("/profile");
+      const next = searchParams.get("next");
+      router.push(next || (profile.onboardingComplete ? "/jobs" : "/"));
     } catch (err: unknown) {
       const code =
         err && typeof err === "object" && "code" in err

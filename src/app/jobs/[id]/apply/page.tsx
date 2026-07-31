@@ -5,12 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { CareerShell, PageIntro, PremiumCard, PrimaryButton } from "@/components/career/shell";
 import { useCareer } from "@/contexts/career-context";
-import { getJobById } from "@/lib/mock/career-data";
 
 export default function ApplyPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { t, getApplication } = useCareer();
+  const { t, getApplication, getJobById } = useCareer();
   const job = getJobById(params.id);
   const application = getApplication(params.id);
 

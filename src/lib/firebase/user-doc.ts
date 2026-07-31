@@ -30,6 +30,11 @@ export function defaultUserDoc(email: string): UserDocument {
       freeCoverUsed: false,
       onboardingComplete: false,
       applications: {},
+      digest: {
+        enabled: false,
+        time: "08:00",
+        timezone: "Asia/Riyadh",
+      },
     },
     updatedAt: new Date().toISOString(),
   };
