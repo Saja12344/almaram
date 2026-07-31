@@ -12,11 +12,16 @@ import { MatchBadge } from "@/components/career/job-card";
 import { FadeIn } from "@/components/career/motion";
 import { useCareer } from "@/contexts/career-context";
 import { getJobById } from "@/lib/mock/career-data";
+import {
+  getJobOriginalTitle,
+  getJobTitle,
+  showOriginalTitleSubtitle,
+} from "@/lib/job-display";
 
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { t } = useCareer();
+  const { t, locale } = useCareer();
   const job = getJobById(params.id);
 
   if (!job) {
@@ -37,7 +42,15 @@ export default function JobDetailPage() {
       <FadeIn>
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{job.title}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">
+              {getJobTitle(job, locale)}
+            </h1>
+            {showOriginalTitleSubtitle(job, locale) ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                <span className="opacity-70">{t.jobs.asPosted}: </span>
+                {getJobOriginalTitle(job)}
+              </p>
+            ) : null}
             <p className="mt-2 text-lg text-muted-foreground">
               {job.company} · {job.location}
             </p>

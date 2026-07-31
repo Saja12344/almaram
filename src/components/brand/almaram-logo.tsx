@@ -1,43 +1,47 @@
 "use client";
 
-import Image from "next/image";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import { useCareer } from "@/contexts/career-context";
 import { cn } from "@/lib/utils";
 
-const LOGO = {
-  light: "/brand/logo-light.png",
-  dark: "/brand/logo-dark.png",
-} as const;
+const LOGO_SRC = "/brand/logo.png";
 
 export function AlmaramLogo({
   className,
   showWordmark = true,
-  markSize = 40,
+  markSize = 56,
 }: {
   className?: string;
   showWordmark?: boolean;
   markSize?: number;
 }) {
-  const { t } = useCareer();
+  const { t, locale } = useCareer();
+  const isArabic = locale === "ar";
 
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <div
-        className="relative shrink-0 overflow-hidden rounded-[14px]"
-        style={{ width: markSize, height: markSize }}
-      >
-        <AlmaramMark size={markSize} className="size-full" />
-      </div>
+    <div className={cn("flex items-center gap-3.5", className)}>
+      <AlmaramMark size={markSize} />
       {showWordmark ? (
-        <div className="leading-none">
-          <p className="text-[17px] font-semibold tracking-tight text-foreground">
+        <div className="flex flex-col justify-center gap-1.5">
+          <span
+            className={cn(
+              "leading-none text-foreground",
+              isArabic
+                ? "font-arabic text-[1.5rem] font-bold"
+                : "font-sans text-[1.375rem] font-semibold tracking-[-0.04em]"
+            )}
+          >
             {t.brand}
-          </p>
-          <p className="mt-0.5 text-[12px] font-medium text-muted-foreground">
-            {t.brandNative} · {t.tagline}
-          </p>
+          </span>
+          <span
+            className={cn(
+              "leading-none text-muted-foreground",
+              isArabic
+                ? "font-arabic text-[12px] font-normal"
+                : "font-sans text-[11px] font-medium tracking-[0.12em] uppercase"
+            )}
+          >
+            {t.tagline}
+          </span>
         </div>
       ) : null}
     </div>
@@ -46,27 +50,20 @@ export function AlmaramLogo({
 
 export function AlmaramMark({
   className,
-  size = 40,
+  size = 56,
 }: {
   className?: string;
   size?: number;
 }) {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  const src =
-    mounted && resolvedTheme === "light" ? LOGO.light : LOGO.dark;
-
   return (
-    <Image
-      src={src}
+    <img
+      src={LOGO_SRC}
       alt="Almaram"
       width={size}
       height={size}
-      className={cn("object-contain", className)}
-      priority
+      className={cn("shrink-0 object-contain", className)}
+      style={{ width: size, height: size }}
+      decoding="async"
     />
   );
 }

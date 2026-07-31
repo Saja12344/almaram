@@ -1,17 +1,17 @@
 import { Suspense } from "react";
-import UploadClient from "./upload-client";
+import PaymentCallbackClient from "./callback-client";
 import { CareerShell, PremiumCard } from "@/components/career/shell";
 
-export default function UploadPage() {
+export default function PaymentCallbackPage() {
   return (
     <Suspense
       fallback={
-        <CareerShell minimal>
+        <CareerShell>
           <PremiumCard className="py-16 text-center text-muted-foreground">…</PremiumCard>
         </CareerShell>
       }
     >
-      <UploadClient />
+      <PaymentCallbackClient />
     </Suspense>
   );
 }

@@ -66,6 +66,7 @@ export const en = {
     subtitle: "Sorted by compatibility — highest first",
     matches: "opportunities",
     matchScore: "Match score",
+    asPosted: "As posted",
     remote: "Remote",
     hybrid: "Hybrid",
     onsite: "On-site",
@@ -130,8 +131,36 @@ export const en = {
     preferences: "Career preferences",
     jobTitles: "Preferred roles",
     countries: "Preferred locations",
+    cities: "Preferred cities",
+    employment: "Work arrangement",
     salary: "Salary expectations",
     save: "Save changes",
+    saved: "Changes saved",
+    account: "Account",
+    email: "Email",
+    password: "Password",
+    currentPassword: "Current password",
+    newPassword: "New password",
+    changePassword: "Change password",
+    passwordUpdated: "Password updated",
+    signInRequired: "Sign in to sync your profile across devices",
+    uploadNewResume: "Upload new resume",
+    replaceResumeHint: "Replace your resume anytime — we'll re-analyze your experience.",
+    addRole: "Add role",
+    searchGlobal: "Include global opportunities",
+  },
+  auth: {
+    title: "Sign in to Almaram",
+    subtitle: "Save your profile, sync across devices, and manage your plan.",
+    email: "Email",
+    password: "Password",
+    signIn: "Sign in",
+    signUp: "Create account",
+    signOut: "Sign out",
+    haveAccount: "Already have an account?",
+    noAccount: "Don't have an account?",
+    firebaseMissing: "Firebase is not configured yet. Add your keys to .env.local.",
+    errorGeneric: "Something went wrong. Check your details and try again.",
   },
   pricing: {
     title: "Choose your plan",
@@ -154,6 +183,17 @@ export const en = {
     ],
     current: "Current plan",
     upgrade: "Upgrade to Pro",
+    upgrading: "Redirecting to payment…",
+    success: "Welcome to Pro! Your plan is now active.",
+    canceled: "Payment canceled.",
+    signInToUpgrade: "Sign in to upgrade",
+    paymentNotConfigured: "Payments are not set up yet. Add Tap keys to .env.local.",
+    payTitle: "Complete payment",
+    paySubtitle: "Pay securely with Mada, Visa, Mastercard, Apple Pay, or STC Pay.",
+    verifyingPayment: "Verifying your payment…",
+    sar: "SAR",
+    sarPerMonth: "SAR / month",
+    madaAccepted: "Mada accepted",
     limitTitle: "You've used your free generation",
     limitBody: "Upgrade to Pro for unlimited resume and cover letter creation.",
   },
@@ -229,6 +269,7 @@ export type TranslationKeys = {
     subtitle: string;
     matches: string;
     matchScore: string;
+    asPosted: string;
     remote: string;
     hybrid: string;
     onsite: string;
@@ -293,8 +334,36 @@ export type TranslationKeys = {
     preferences: string;
     jobTitles: string;
     countries: string;
+    cities: string;
+    employment: string;
     salary: string;
     save: string;
+    saved: string;
+    account: string;
+    email: string;
+    password: string;
+    currentPassword: string;
+    newPassword: string;
+    changePassword: string;
+    passwordUpdated: string;
+    signInRequired: string;
+    uploadNewResume: string;
+    replaceResumeHint: string;
+    addRole: string;
+    searchGlobal: string;
+  };
+  auth: {
+    title: string;
+    subtitle: string;
+    email: string;
+    password: string;
+    signIn: string;
+    signUp: string;
+    signOut: string;
+    haveAccount: string;
+    noAccount: string;
+    firebaseMissing: string;
+    errorGeneric: string;
   };
   pricing: {
     title: string;
@@ -305,6 +374,17 @@ export type TranslationKeys = {
     proFeatures: readonly string[];
     current: string;
     upgrade: string;
+    upgrading: string;
+    success: string;
+    canceled: string;
+    signInToUpgrade: string;
+    paymentNotConfigured: string;
+    payTitle: string;
+    paySubtitle: string;
+    verifyingPayment: string;
+    sar: string;
+    sarPerMonth: string;
+    madaAccepted: string;
     limitTitle: string;
     limitBody: string;
   };

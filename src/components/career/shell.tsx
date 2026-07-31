@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { AlmaramLogo } from "@/components/brand/almaram-logo";
 import { ThemeToggle } from "@/components/career/theme-toggle";
 import { useCareer } from "@/contexts/career-context";
+import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 
 export function CareerShell({
@@ -16,6 +17,7 @@ export function CareerShell({
   minimal?: boolean;
 }) {
   const { t, locale, setLocale, profile } = useCareer();
+  const { user } = useAuth();
   const pathname = usePathname();
   const showNav = profile.onboardingComplete && !minimal;
 
@@ -59,6 +61,15 @@ export function CareerShell({
                 ))}
               </nav>
             ) : null}
+
+            {!user ? (
+              <Link
+                href="/login"
+                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                {t.auth.signIn}
+              </Link>
+            ) : null}
           </div>
         </div>
       </header>
@@ -97,12 +108,14 @@ export function PrimaryButton({
   onClick,
   href,
   disabled,
+  type = "button",
   className,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   href?: string;
   disabled?: boolean;
+  type?: "button" | "submit";
   className?: string;
 }) {
   const cls = cn(
@@ -117,7 +130,7 @@ export function PrimaryButton({
     );
   }
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
+    <button type={type} onClick={onClick} disabled={disabled} className={cls}>
       {children}
     </button>
   );
@@ -127,15 +140,17 @@ export function SecondaryButton({
   children,
   onClick,
   href,
+  disabled,
   className,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   href?: string;
+  disabled?: boolean;
   className?: string;
 }) {
   const cls = cn(
-    "inline-flex h-12 items-center justify-center rounded-2xl border border-border bg-card px-7 text-sm font-semibold text-foreground transition hover:bg-muted active:scale-[0.99]",
+    "inline-flex h-12 items-center justify-center rounded-2xl border border-border bg-card px-7 text-sm font-semibold text-foreground transition hover:bg-muted active:scale-[0.99] disabled:opacity-50",
     className
   );
   if (href) {
@@ -146,7 +161,7 @@ export function SecondaryButton({
     );
   }
   return (
-    <button type="button" onClick={onClick} className={cls}>
+    <button type="button" onClick={onClick} disabled={disabled} className={cls}>
       {children}
     </button>
   );

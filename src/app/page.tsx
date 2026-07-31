@@ -58,11 +58,7 @@ export default function WelcomePage() {
           >
             <div className="absolute inset-0 rounded-[36px] border border-border bg-card shadow-[var(--shadow-card)]" />
             <div className="absolute inset-0 flex flex-col items-center justify-center p-10">
-              <div
-                className="relative size-28 overflow-hidden rounded-[28px] shadow-[var(--shadow-soft)]"
-              >
-                <AlmaramMark size={112} className="size-full" />
-              </div>
+              <AlmaramMark size={140} />
               <p className="mt-8 text-center text-2xl font-semibold text-foreground">
                 {t.brand}
               </p>

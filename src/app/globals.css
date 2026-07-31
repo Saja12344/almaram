@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-arabic: var(--font-arabic);
+  --font-sans: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: var(--font-arabic), ui-sans-serif, sans-serif;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -58,26 +58,26 @@
 }
 
 .dark {
-  --background: #09090b;
-  --foreground: #ffffff;
-  --card: #111113;
-  --card-foreground: #ffffff;
-  --popover: #111113;
-  --popover-foreground: #ffffff;
+  --background: #141820;
+  --foreground: #d4d8e2;
+  --card: #1a1f2b;
+  --card-foreground: #d4d8e2;
+  --popover: #1a1f2b;
+  --popover-foreground: #d4d8e2;
   --primary: #5b8cff;
-  --primary-foreground: #09090b;
-  --secondary: #18181b;
-  --secondary-foreground: #ffffff;
-  --muted: #18181b;
-  --muted-foreground: #a1a1aa;
+  --primary-foreground: #141820;
+  --secondary: #1f2533;
+  --secondary-foreground: #d4d8e2;
+  --muted: #1f2533;
+  --muted-foreground: #9aa3b5;
   --accent: #7aa2ff;
-  --accent-foreground: #09090b;
+  --accent-foreground: #141820;
   --destructive: #f87171;
-  --border: #27272a;
-  --input: #27272a;
+  --border: #2a3142;
+  --input: #2a3142;
   --ring: #7aa2ff;
-  --shadow-soft: 0 24px 60px rgba(0, 0, 0, 0.45);
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 20px 50px rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 24px 60px rgba(8, 12, 22, 0.55);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03), 0 20px 50px rgba(8, 12, 22, 0.45);
 }
 
 @layer base {
@@ -92,7 +92,7 @@
     @apply font-sans;
   }
   html[lang="ar"] body {
-    font-family: var(--font-arabic), var(--font-sans), sans-serif;
+    font-family: var(--font-arabic), var(--font-display), sans-serif;
     letter-spacing: 0;
   }
   h1, h2, h3 {

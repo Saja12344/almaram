@@ -27,6 +27,8 @@ export interface JobListing {
   company: string;
   companyLogo: string;
   title: string;
+  /** Natural Arabic display title — generated at ingest, not literal UI translation. */
+  titleLocalized?: string;
   location: string;
   remote: boolean;
   employmentType: EmploymentType;

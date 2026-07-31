@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Tajawal } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/contexts/auth-context";
 import { CareerProvider } from "@/contexts/career-context";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-sans",
+const display = Plus_Jakarta_Sans({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["500", "600"],
 });
 
-const arabic = IBM_Plex_Sans_Arabic({
+const arabic = Tajawal({
   variable: "--font-arabic",
   subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -21,11 +23,8 @@ export const metadata: Metadata = {
   description:
     "A premium AI career platform that understands your path and guides you toward the roles you aspire to reach.",
   icons: {
-    icon: [
-      { url: "/brand/logo-light.png", media: "(prefers-color-scheme: light)" },
-      { url: "/brand/logo-dark.png", media: "(prefers-color-scheme: dark)" },
-    ],
-    apple: "/brand/logo-dark.png",
+    icon: "/brand/logo.png",
+    apple: "/brand/logo.png",
   },
 };
 
@@ -36,9 +35,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${arabic.variable} min-h-full font-sans`}>
+      <body className={`${display.variable} ${arabic.variable} min-h-full font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <CareerProvider>{children}</CareerProvider>
+          <AuthProvider>
+            <CareerProvider>{children}</CareerProvider>
+          </AuthProvider>
           <Toaster position="top-center" richColors />
         </ThemeProvider>
       </body>

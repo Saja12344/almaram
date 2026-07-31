@@ -6,15 +6,20 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { doc, setDoc } from "firebase/firestore";
 import {
   DEFAULT_JOB_TITLES,
   DEMO_ANALYSIS,
   getSortedJobs,
 } from "@/lib/mock/career-data";
 import { getDir, translations, type Locale, type TranslationKeys } from "@/lib/i18n";
+import { getFirebaseDb, isFirebaseConfigured } from "@/lib/firebase/client";
+import { USERS_COLLECTION } from "@/lib/firebase/user-doc";
+import { useAuth } from "@/contexts/auth-context";
 import type {
   ApplicationRecord,
   JobListing,
@@ -61,6 +66,8 @@ interface CareerContextValue {
   getApplication: (jobId: string) => ApplicationRecord | undefined;
   generateDocuments: (job: JobListing) => OptimizedDocuments;
   resetOnboarding: () => void;
+  saveProfile: (override?: Partial<UserCareerProfile>) => Promise<void>;
+  saving: boolean;
 }
 
 const CareerContext = createContext<CareerContextValue | null>(null);
@@ -77,9 +84,12 @@ function loadState(): UserCareerProfile {
 }
 
 export function CareerProvider({ children }: { children: ReactNode }) {
+  const { user, userDoc } = useAuth();
   const [locale, setLocaleState] = useState<Locale>("en");
   const [profile, setProfile] = useState<UserCareerProfile>(defaultProfile);
   const [hydrated, setHydrated] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const cloudSynced = useRef(false);
 
   useEffect(() => {
     setProfile(loadState());
@@ -104,6 +114,52 @@ export function CareerProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = locale;
     document.documentElement.dir = getDir(locale);
   }, [locale]);
+
+  // Sync plan from Firebase subscription
+  useEffect(() => {
+    if (userDoc?.plan && userDoc.plan !== profile.plan) {
+      setProfile((prev) => ({ ...prev, plan: userDoc.plan }));
+    }
+  }, [userDoc?.plan, profile.plan]);
+
+  // Load cloud profile once after sign-in
+  useEffect(() => {
+    if (!user || !userDoc?.careerProfile) return;
+    if (cloudSynced.current) return;
+    cloudSynced.current = true;
+    setProfile((prev) => ({
+      ...defaultProfile,
+      ...userDoc.careerProfile,
+      plan: userDoc.plan ?? prev.plan,
+    }));
+  }, [user, userDoc]);
+
+  useEffect(() => {
+    if (!user) cloudSynced.current = false;
+  }, [user]);
+
+  const saveProfile = useCallback(async (override?: Partial<UserCareerProfile>) => {
+    setSaving(true);
+    const next = { ...profile, ...override };
+    try {
+      if (override) {
+        setProfile(next);
+      }
+      if (user && isFirebaseConfigured()) {
+        await setDoc(
+          doc(getFirebaseDb(), USERS_COLLECTION, user.uid),
+          {
+            careerProfile: next,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } finally {
+      setSaving(false);
+    }
+  }, [user, profile]);
 
   const t = translations[locale];
   const dir = getDir(locale);
@@ -190,7 +246,10 @@ export function CareerProvider({ children }: { children: ReactNode }) {
     resetOnboarding: () => {
       localStorage.removeItem(STORAGE_KEY);
       setProfile(defaultProfile);
+      cloudSynced.current = false;
     },
+    saveProfile,
+    saving,
   };
 
   if (!hydrated) {
